@@ -10,6 +10,7 @@ import android.os.IBinder
 import android.util.Log
 import android.widget.RemoteViews
 import com.videowidgetplayer.R
+import com.videowidgetplayer.data.VideoQueueManager
 import com.videowidgetplayer.services.VideoPlaybackService
 import com.videowidgetplayer.utils.PreferenceUtils
 
@@ -30,6 +31,7 @@ class WidgetVideoManager private constructor() {
     
     private var videoPlaybackService: VideoPlaybackService? = null
     private var isServiceConnected = false
+    private val queueManager = VideoQueueManager.getInstance()
     
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -187,6 +189,227 @@ class WidgetVideoManager private constructor() {
     }
     
     /**
+     * Navigate to next video in queue
+     */
+    fun nextVideo(context: Context, widgetId: Int) {
+        Log.d(TAG, "Navigating to next video for widget: $widgetId")
+        
+        try {
+            // Get current queue from preferences
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) {
+                Log.w(TAG, "No video queue found for widget: $widgetId")
+                return
+            }
+            
+            // Initialize queue manager if needed
+            if (!queueManager.hasQueue(widgetId)) {
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+                val isShuffleEnabled = PreferenceUtils.getWidgetShuffleEnabled(context, widgetId)
+                val loopMode = PreferenceUtils.getWidgetLoopMode(context, widgetId)
+                
+                queueManager.initializeQueue(
+                    context = context,
+                    widgetId = widgetId,
+                    videoUris = videoUris,
+                    startIndex = currentIndex,
+                    shuffleEnabled = isShuffleEnabled,
+                    loopMode = VideoQueueManager.LoopMode.values()[loopMode]
+                )
+            }
+            
+            // Navigate to next video
+            val nextVideoUri = queueManager.nextVideo(context, widgetId)
+            if (nextVideoUri != null) {
+                // Stop current video first
+                stopVideo(context, widgetId)
+                
+                // Load and play next video
+                loadVideoForWidget(context, widgetId, nextVideoUri)
+                
+                // Update widget info display
+                updateWidgetQueueInfo(context, widgetId)
+            } else {
+                Log.d(TAG, "No next video available (end of queue)")
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to next video", e)
+        }
+    }
+    
+    /**
+     * Navigate to previous video in queue
+     */
+    fun previousVideo(context: Context, widgetId: Int) {
+        Log.d(TAG, "Navigating to previous video for widget: $widgetId")
+        
+        try {
+            // Get current queue from preferences
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) {
+                Log.w(TAG, "No video queue found for widget: $widgetId")
+                return
+            }
+            
+            // Initialize queue manager if needed
+            if (!queueManager.hasQueue(widgetId)) {
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+                val isShuffleEnabled = PreferenceUtils.getWidgetShuffleEnabled(context, widgetId)
+                val loopMode = PreferenceUtils.getWidgetLoopMode(context, widgetId)
+                
+                queueManager.initializeQueue(
+                    context = context,
+                    widgetId = widgetId,
+                    videoUris = videoUris,
+                    startIndex = currentIndex,
+                    shuffleEnabled = isShuffleEnabled,
+                    loopMode = VideoQueueManager.LoopMode.values()[loopMode]
+                )
+            }
+            
+            // Navigate to previous video
+            val previousVideoUri = queueManager.previousVideo(context, widgetId)
+            if (previousVideoUri != null) {
+                // Stop current video first
+                stopVideo(context, widgetId)
+                
+                // Load and play previous video
+                loadVideoForWidget(context, widgetId, previousVideoUri)
+                
+                // Update widget info display
+                updateWidgetQueueInfo(context, widgetId)
+            } else {
+                Log.d(TAG, "No previous video available (start of queue)")
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to previous video", e)
+        }
+    }
+    
+    /**
+     * Toggle shuffle mode for widget queue
+     */
+    fun toggleShuffle(context: Context, widgetId: Int) {
+        Log.d(TAG, "Toggling shuffle for widget: $widgetId")
+        
+        try {
+            // Get current queue from preferences
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) {
+                Log.w(TAG, "No video queue found for widget: $widgetId")
+                return
+            }
+            
+            // Initialize queue manager if needed
+            if (!queueManager.hasQueue(widgetId)) {
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+                val isShuffleEnabled = PreferenceUtils.getWidgetShuffleEnabled(context, widgetId)
+                val loopMode = PreferenceUtils.getWidgetLoopMode(context, widgetId)
+                
+                queueManager.initializeQueue(
+                    context = context,
+                    widgetId = widgetId,
+                    videoUris = videoUris,
+                    startIndex = currentIndex,
+                    shuffleEnabled = isShuffleEnabled,
+                    loopMode = VideoQueueManager.LoopMode.values()[loopMode]
+                )
+            }
+            
+            // Toggle shuffle
+            queueManager.toggleShuffle(context, widgetId)
+            
+            // Update widget UI to reflect shuffle state
+            updateWidgetShuffleState(context, widgetId)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error toggling shuffle", e)
+        }
+    }
+    
+    /**
+     * Cycle through loop modes (NONE -> SINGLE -> ALL -> NONE)
+     */
+    fun cycleLoopMode(context: Context, widgetId: Int) {
+        Log.d(TAG, "Cycling loop mode for widget: $widgetId")
+        
+        try {
+            // Get current queue from preferences
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) {
+                Log.w(TAG, "No video queue found for widget: $widgetId")
+                return
+            }
+            
+            // Initialize queue manager if needed
+            if (!queueManager.hasQueue(widgetId)) {
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+                val isShuffleEnabled = PreferenceUtils.getWidgetShuffleEnabled(context, widgetId)
+                val loopMode = PreferenceUtils.getWidgetLoopMode(context, widgetId)
+                
+                queueManager.initializeQueue(
+                    context = context,
+                    widgetId = widgetId,
+                    videoUris = videoUris,
+                    startIndex = currentIndex,
+                    shuffleEnabled = isShuffleEnabled,
+                    loopMode = VideoQueueManager.LoopMode.values()[loopMode]
+                )
+            }
+            
+            // Get current loop mode and cycle to next
+            val currentLoopMode = queueManager.getLoopMode(widgetId)
+            val nextLoopMode = when (currentLoopMode) {
+                VideoQueueManager.LoopMode.NONE -> VideoQueueManager.LoopMode.SINGLE
+                VideoQueueManager.LoopMode.SINGLE -> VideoQueueManager.LoopMode.ALL
+                VideoQueueManager.LoopMode.ALL -> VideoQueueManager.LoopMode.NONE
+            }
+            
+            queueManager.setLoopMode(context, widgetId, nextLoopMode)
+            
+            // Update widget UI to reflect loop state
+            updateWidgetLoopState(context, widgetId, nextLoopMode)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cycling loop mode", e)
+        }
+    }
+    
+    /**
+     * Initialize video queue for widget
+     */
+    fun initializeVideoQueue(context: Context, widgetId: Int, videoUris: List<String>) {
+        Log.d(TAG, "Initializing video queue for widget $widgetId with ${videoUris.size} videos")
+        
+        try {
+            // Save queue to preferences
+            PreferenceUtils.setWidgetVideoQueue(context, widgetId, videoUris)
+            PreferenceUtils.setWidgetCurrentVideoIndex(context, widgetId, 0)
+            
+            // Initialize queue manager
+            queueManager.initializeQueue(
+                context = context,
+                widgetId = widgetId,
+                videoUris = videoUris,
+                startIndex = 0,
+                shuffleEnabled = false,
+                loopMode = VideoQueueManager.LoopMode.NONE
+            )
+            
+            // Load first video if queue is not empty
+            if (videoUris.isNotEmpty()) {
+                loadVideoForWidget(context, widgetId, videoUris[0])
+                updateWidgetQueueInfo(context, widgetId)
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing video queue", e)
+        }
+    }
+    
+    /**
      * Check if video is loaded for widget
      */
     private fun isVideoLoadedForWidget(widgetId: Int): Boolean {
@@ -195,6 +418,100 @@ class WidgetVideoManager private constructor() {
             // In a more complex implementation, we could track loaded videos
             false
         } ?: false
+    }
+    
+    /**
+     * Update widget with queue information
+     */
+    private fun updateWidgetQueueInfo(context: Context, widgetId: Int) {
+        try {
+            val queue = queueManager.getQueue(widgetId)
+            if (queue != null) {
+                val appWidgetManager = AppWidgetManager.getInstance(context)
+                val options = appWidgetManager.getAppWidgetOptions(widgetId)
+                val layoutId = VideoWidgetProvider.getWidgetLayout(options)
+                val views = RemoteViews(context.packageName, layoutId)
+                
+                // Update queue info text if available in large layout
+                if (hasView(layoutId, R.id.queue_info)) {
+                    val queueInfo = "${queue.currentIndex + 1}/${queue.videos.size}"
+                    views.setTextViewText(R.id.queue_info, queueInfo)
+                }
+                
+                // Update navigation button states
+                val hasPrevious = queueManager.hasPrevious(widgetId)
+                val hasNext = queueManager.hasNext(widgetId)
+                
+                if (hasView(layoutId, R.id.previous_button)) {
+                    views.setViewVisibility(R.id.previous_button, 
+                        if (hasPrevious) android.view.View.VISIBLE else android.view.View.INVISIBLE)
+                }
+                
+                if (hasView(layoutId, R.id.next_button)) {
+                    views.setViewVisibility(R.id.next_button, 
+                        if (hasNext) android.view.View.VISIBLE else android.view.View.INVISIBLE)
+                }
+                
+                appWidgetManager.updateAppWidget(widgetId, views)
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating widget queue info", e)
+        }
+    }
+    
+    /**
+     * Update widget shuffle state UI
+     */
+    private fun updateWidgetShuffleState(context: Context, widgetId: Int) {
+        try {
+            val isShuffleEnabled = queueManager.isShuffleEnabled(widgetId)
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val options = appWidgetManager.getAppWidgetOptions(widgetId)
+            val layoutId = VideoWidgetProvider.getWidgetLayout(options)
+            val views = RemoteViews(context.packageName, layoutId)
+            
+            // Update shuffle button appearance if available
+            if (hasView(layoutId, R.id.shuffle_button)) {
+                // You can change button appearance here based on shuffle state
+                // For example, different background or icon
+                val alpha = if (isShuffleEnabled) 255 else 128
+                views.setInt(R.id.shuffle_button, "setImageAlpha", alpha)
+            }
+            
+            appWidgetManager.updateAppWidget(widgetId, views)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating widget shuffle state", e)
+        }
+    }
+    
+    /**
+     * Update widget loop state UI
+     */
+    private fun updateWidgetLoopState(context: Context, widgetId: Int, loopMode: VideoQueueManager.LoopMode) {
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val options = appWidgetManager.getAppWidgetOptions(widgetId)
+            val layoutId = VideoWidgetProvider.getWidgetLayout(options)
+            val views = RemoteViews(context.packageName, layoutId)
+            
+            // Update loop button appearance if available
+            if (hasView(layoutId, R.id.loop_button)) {
+                // You can change button appearance here based on loop mode
+                val alpha = when (loopMode) {
+                    VideoQueueManager.LoopMode.NONE -> 128
+                    VideoQueueManager.LoopMode.SINGLE -> 255
+                    VideoQueueManager.LoopMode.ALL -> 255
+                }
+                views.setInt(R.id.loop_button, "setImageAlpha", alpha)
+            }
+            
+            appWidgetManager.updateAppWidget(widgetId, views)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating widget loop state", e)
+        }
     }
     
     /**
@@ -295,9 +612,10 @@ class WidgetVideoManager private constructor() {
             R.layout.video_widget_compact -> viewId in listOf(
                 R.id.play_pause_button, R.id.video_thumbnail
             )
-            R.layout.video_widget_large -> true // Large layout has all views
+            R.layout.video_widget_large -> true // Large layout has all views including queue controls
             else -> viewId in listOf(
-                R.id.play_pause_button, R.id.video_thumbnail, R.id.play_overlay, R.id.loading_indicator
+                R.id.play_pause_button, R.id.video_thumbnail, R.id.play_overlay, R.id.loading_indicator,
+                R.id.next_button, R.id.previous_button, R.id.mute_button
             )
         }
     }

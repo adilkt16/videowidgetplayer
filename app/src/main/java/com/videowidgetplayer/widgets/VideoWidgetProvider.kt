@@ -30,6 +30,8 @@ class VideoWidgetProvider : AppWidgetProvider() {
         const val ACTION_WIDGET_FORWARD = "com.videowidgetplayer.action.WIDGET_FORWARD"
         const val ACTION_WIDGET_MUTE = "com.videowidgetplayer.action.WIDGET_MUTE"
         const val ACTION_WIDGET_UNMUTE = "com.videowidgetplayer.action.WIDGET_UNMUTE"
+        const val ACTION_WIDGET_SHUFFLE = "com.videowidgetplayer.action.WIDGET_SHUFFLE"
+        const val ACTION_WIDGET_LOOP = "com.videowidgetplayer.action.WIDGET_LOOP"
         const val ACTION_WIDGET_CONFIGURE = "com.videowidgetplayer.action.WIDGET_CONFIGURE"
         
         // Widget size thresholds
@@ -247,6 +249,16 @@ class VideoWidgetProvider : AppWidgetProvider() {
                 setupButtonClick(context, views, appWidgetId, R.id.mute_button, ACTION_WIDGET_MUTE)
             }
             
+            // Shuffle button (if present)
+            if (hasView(layoutId, R.id.shuffle_button)) {
+                setupButtonClick(context, views, appWidgetId, R.id.shuffle_button, ACTION_WIDGET_SHUFFLE)
+            }
+            
+            // Loop button (if present)
+            if (hasView(layoutId, R.id.loop_button)) {
+                setupButtonClick(context, views, appWidgetId, R.id.loop_button, ACTION_WIDGET_LOOP)
+            }
+            
             // Settings button (if present)
             if (hasView(layoutId, R.id.widget_settings)) {
                 setupButtonClick(context, views, appWidgetId, R.id.widget_settings, ACTION_WIDGET_CONFIGURE)
@@ -385,6 +397,12 @@ class VideoWidgetProvider : AppWidgetProvider() {
             ACTION_WIDGET_MUTE, ACTION_WIDGET_UNMUTE -> {
                 handleMuteToggle(context, appWidgetId)
             }
+            ACTION_WIDGET_SHUFFLE -> {
+                handleShuffle(context, appWidgetId)
+            }
+            ACTION_WIDGET_LOOP -> {
+                handleLoop(context, appWidgetId)
+            }
             ACTION_WIDGET_CONFIGURE -> {
                 handleConfigure(context, appWidgetId)
             }
@@ -445,7 +463,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         // Use WidgetVideoManager for next video functionality
         val videoManager = WidgetVideoManager.getInstance()
         videoManager.initialize(context)
-        // TODO: Add next video functionality to WidgetVideoManager
+        videoManager.nextVideo(context, appWidgetId)
         Log.d(TAG, "Next video requested for widget: $appWidgetId")
     }
     
@@ -458,7 +476,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         // Use WidgetVideoManager for previous video functionality
         val videoManager = WidgetVideoManager.getInstance()
         videoManager.initialize(context)
-        // TODO: Add previous video functionality to WidgetVideoManager
+        videoManager.previousVideo(context, appWidgetId)
         Log.d(TAG, "Previous video requested for widget: $appWidgetId")
     }
     
@@ -507,6 +525,42 @@ class VideoWidgetProvider : AppWidgetProvider() {
         videoManager.setVolume(context, appWidgetId, if (newMuteState) 0f else 1f)
         
         // Update widget to reflect new mute state
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        updateAppWidget(context, appWidgetManager, appWidgetId)
+    }
+    
+    /**
+     * Handle shuffle toggle action
+     */
+    private fun handleShuffle(context: Context, appWidgetId: Int) {
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
+        
+        Log.d(TAG, "Handling shuffle toggle for widget: $appWidgetId")
+        
+        // Use WidgetVideoManager for shuffle functionality
+        val videoManager = WidgetVideoManager.getInstance()
+        videoManager.initialize(context)
+        videoManager.toggleShuffle(context, appWidgetId)
+        
+        // Update widget to reflect new shuffle state
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        updateAppWidget(context, appWidgetManager, appWidgetId)
+    }
+    
+    /**
+     * Handle loop mode cycle action
+     */
+    private fun handleLoop(context: Context, appWidgetId: Int) {
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
+        
+        Log.d(TAG, "Handling loop cycle for widget: $appWidgetId")
+        
+        // Use WidgetVideoManager for loop functionality
+        val videoManager = WidgetVideoManager.getInstance()
+        videoManager.initialize(context)
+        videoManager.cycleLoopMode(context, appWidgetId)
+        
+        // Update widget to reflect new loop state
         val appWidgetManager = AppWidgetManager.getInstance(context)
         updateAppWidget(context, appWidgetManager, appWidgetId)
     }

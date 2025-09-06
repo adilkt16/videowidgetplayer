@@ -15,6 +15,12 @@ object PreferenceUtils {
     private const val KEY_WIDGET_TITLE = "widget_title_"
     private const val KEY_PLAYBACK_POSITION = "playback_position_"
     
+    // Video queue management keys
+    private const val KEY_WIDGET_VIDEO_QUEUE = "widget_video_queue_"
+    private const val KEY_WIDGET_CURRENT_INDEX = "widget_current_index_"
+    private const val KEY_WIDGET_SHUFFLE_ENABLED = "widget_shuffle_enabled_"
+    private const val KEY_WIDGET_LOOP_MODE = "widget_loop_mode_"
+    
     private fun getSharedPreferences(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -180,6 +186,53 @@ object PreferenceUtils {
         }
         
         return configuredWidgets.sorted()
+    }
+    
+    // Video queue management methods
+    fun setWidgetVideoQueue(context: Context, widgetId: Int, videoUris: List<String>) {
+        val queueString = videoUris.joinToString("|")
+        getSharedPreferences(context).edit()
+            .putString(KEY_WIDGET_VIDEO_QUEUE + widgetId, queueString)
+            .apply()
+    }
+    
+    fun getWidgetVideoQueue(context: Context, widgetId: Int): List<String> {
+        val queueString = getSharedPreferences(context).getString(KEY_WIDGET_VIDEO_QUEUE + widgetId, "")
+        return if (queueString.isNullOrEmpty()) {
+            emptyList()
+        } else {
+            queueString.split("|").filter { it.isNotEmpty() }
+        }
+    }
+    
+    fun setWidgetCurrentVideoIndex(context: Context, widgetId: Int, index: Int) {
+        getSharedPreferences(context).edit()
+            .putInt(KEY_WIDGET_CURRENT_INDEX + widgetId, index)
+            .apply()
+    }
+    
+    fun getWidgetCurrentVideoIndex(context: Context, widgetId: Int): Int {
+        return getSharedPreferences(context).getInt(KEY_WIDGET_CURRENT_INDEX + widgetId, 0)
+    }
+    
+    fun setWidgetShuffleEnabled(context: Context, widgetId: Int, enabled: Boolean) {
+        getSharedPreferences(context).edit()
+            .putBoolean(KEY_WIDGET_SHUFFLE_ENABLED + widgetId, enabled)
+            .apply()
+    }
+    
+    fun getWidgetShuffleEnabled(context: Context, widgetId: Int): Boolean {
+        return getSharedPreferences(context).getBoolean(KEY_WIDGET_SHUFFLE_ENABLED + widgetId, false)
+    }
+    
+    fun setWidgetLoopMode(context: Context, widgetId: Int, loopMode: Int) {
+        getSharedPreferences(context).edit()
+            .putInt(KEY_WIDGET_LOOP_MODE + widgetId, loopMode)
+            .apply()
+    }
+    
+    fun getWidgetLoopMode(context: Context, widgetId: Int): Int {
+        return getSharedPreferences(context).getInt(KEY_WIDGET_LOOP_MODE + widgetId, 0) // Default: NONE
     }
     
     fun clearAllPreferences(context: Context) {

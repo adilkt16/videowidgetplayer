@@ -31,6 +31,7 @@
     <string name="widget_configure">Configure widget</string>
     <string name="widget_not_configured">Widget not configured. Tap to set up.</string>
     <string name="video_title_unknown">Unknown Video</string>
+    <string name="videos_selected">%d videos selected</string>
     
     <!-- Video Selection Activity -->
     <string name="select_videos">Select Videos</string>
