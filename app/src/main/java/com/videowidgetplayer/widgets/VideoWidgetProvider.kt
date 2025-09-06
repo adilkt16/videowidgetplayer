@@ -73,7 +73,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         /**
          * Determine which layout to use based on widget size
          */
-        private fun getWidgetLayout(options: Bundle?): Int {
+        fun getWidgetLayout(options: Bundle?): Int {
             if (options == null) return R.layout.video_widget
             
             val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
@@ -355,11 +355,21 @@ class VideoWidgetProvider : AppWidgetProvider() {
     
     override fun onEnabled(context: Context) {
         Log.d(TAG, "First widget added")
+        
+        // Initialize WidgetVideoManager
+        val videoManager = WidgetVideoManager.getInstance()
+        videoManager.initialize(context)
+        
         super.onEnabled(context)
     }
     
     override fun onDisabled(context: Context) {
         Log.d(TAG, "Last widget removed")
+        
+        // Release WidgetVideoManager resources
+        val videoManager = WidgetVideoManager.getInstance()
+        videoManager.release(context)
+        
         super.onDisabled(context)
     }
     
@@ -380,17 +390,12 @@ class VideoWidgetProvider : AppWidgetProvider() {
     private fun handlePlayPause(context: Context, appWidgetId: Int) {
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
         
-        val isCurrentlyPlaying = PreferenceUtils.getWidgetPlayState(context, appWidgetId)
-        val newPlayState = !isCurrentlyPlaying
+        Log.d(TAG, "Handling play/pause for widget: $appWidgetId")
         
-        PreferenceUtils.setWidgetPlayState(context, appWidgetId, newPlayState)
-        
-        // Update widget to reflect new state
-        val appWidgetManager = AppWidgetManager.getInstance(context)
-        updateAppWidget(context, appWidgetManager, appWidgetId)
-        
-        // TODO: Integrate with actual video player
-        Log.d(TAG, "Widget $appWidgetId play state changed to: $newPlayState")
+        // Use WidgetVideoManager to handle playback
+        val videoManager = WidgetVideoManager.getInstance()
+        videoManager.initialize(context)
+        videoManager.togglePlayPause(context, appWidgetId)
     }
     
     /**

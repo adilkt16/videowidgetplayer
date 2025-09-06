@@ -84,6 +84,12 @@
             </intent-filter>
         </activity>
 
+        <!-- Video Playback Service -->
+        <service
+            android:name=".services.VideoPlaybackService"
+            android:exported="false"
+            android:enabled="true" />
+
         <!-- Boot receiver for widget updates -->
         <receiver
             android:name=".widgets.VideoWidgetProvider"

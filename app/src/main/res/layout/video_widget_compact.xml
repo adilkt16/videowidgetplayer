@@ -38,6 +38,14 @@
                 android:contentDescription="Play video"
                 android:alpha="0.8" />
 
+            <!-- Loading indicator -->
+            <ProgressBar
+                android:id="@+id/loading_indicator"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
             <!-- Widget title overlay -->
             <TextView
                 android:id="@+id/widget_title"
