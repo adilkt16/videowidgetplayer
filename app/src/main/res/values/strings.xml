@@ -12,6 +12,8 @@
     <string name="cancel">Cancel</string>
     <string name="play">Play</string>
     <string name="pause">Pause</string>
+    <string name="mute">Mute</string>
+    <string name="unmute">Unmute</string>
     <string name="no_videos_found">No videos found</string>
     <string name="permission_required">Media access permission required</string>
     <string name="permission_denied">Permission denied. Please grant media access in Settings.</string>

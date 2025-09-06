@@ -28,6 +28,8 @@ class VideoWidgetProvider : AppWidgetProvider() {
         const val ACTION_WIDGET_PREVIOUS = "com.videowidgetplayer.action.WIDGET_PREVIOUS"
         const val ACTION_WIDGET_REWIND = "com.videowidgetplayer.action.WIDGET_REWIND"
         const val ACTION_WIDGET_FORWARD = "com.videowidgetplayer.action.WIDGET_FORWARD"
+        const val ACTION_WIDGET_MUTE = "com.videowidgetplayer.action.WIDGET_MUTE"
+        const val ACTION_WIDGET_UNMUTE = "com.videowidgetplayer.action.WIDGET_UNMUTE"
         const val ACTION_WIDGET_CONFIGURE = "com.videowidgetplayer.action.WIDGET_CONFIGURE"
         
         // Widget size thresholds
@@ -116,6 +118,9 @@ class VideoWidgetProvider : AppWidgetProvider() {
             views.setImageViewResource(R.id.play_pause_button, playPauseIcon)
             views.setContentDescription(R.id.play_pause_button, playPauseDesc)
             
+            // Update mute button
+            updateMuteButton(context, views, appWidgetId, layoutId)
+            
             // Update video thumbnail
             if (videoUri != null) {
                 loadVideoThumbnail(context, views, videoUri)
@@ -177,6 +182,31 @@ class VideoWidgetProvider : AppWidgetProvider() {
         }
         
         /**
+         * Update mute button appearance and state
+         */
+        private fun updateMuteButton(
+            context: Context,
+            views: RemoteViews,
+            appWidgetId: Int,
+            layoutId: Int
+        ) {
+            // Check if mute button exists in this layout
+            if (!hasView(layoutId, R.id.mute_button)) return
+            
+            val isMuted = PreferenceUtils.getWidgetMuteState(context, appWidgetId)
+            
+            val muteIcon = if (isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_up
+            val muteDesc = if (isMuted) {
+                context.getString(R.string.unmute)
+            } else {
+                context.getString(R.string.mute)
+            }
+            
+            views.setImageViewResource(R.id.mute_button, muteIcon)
+            views.setContentDescription(R.id.mute_button, muteDesc)
+        }
+        
+        /**
          * Set up click listeners for widget buttons
          */
         private fun setupClickListeners(
@@ -210,6 +240,11 @@ class VideoWidgetProvider : AppWidgetProvider() {
             }
             if (hasView(layoutId, R.id.forward_button)) {
                 setupButtonClick(context, views, appWidgetId, R.id.forward_button, ACTION_WIDGET_FORWARD)
+            }
+            
+            // Mute button (if present)
+            if (hasView(layoutId, R.id.mute_button)) {
+                setupButtonClick(context, views, appWidgetId, R.id.mute_button, ACTION_WIDGET_MUTE)
             }
             
             // Settings button (if present)
@@ -247,12 +282,12 @@ class VideoWidgetProvider : AppWidgetProvider() {
         private fun hasView(layoutId: Int, viewId: Int): Boolean {
             return when (layoutId) {
                 R.layout.video_widget_compact -> viewId in listOf(
-                    R.id.previous_button, R.id.play_pause_button, R.id.next_button
+                    R.id.previous_button, R.id.play_pause_button, R.id.next_button, R.id.mute_button
                 )
                 R.layout.video_widget_large -> true // Large layout has all views
                 else -> viewId in listOf(
                     R.id.play_pause_button, R.id.previous_button, R.id.next_button,
-                    R.id.rewind_button, R.id.forward_button, R.id.widget_settings
+                    R.id.rewind_button, R.id.forward_button, R.id.mute_button, R.id.widget_settings
                 )
             }
         }
@@ -347,6 +382,9 @@ class VideoWidgetProvider : AppWidgetProvider() {
             ACTION_WIDGET_FORWARD -> {
                 handleForward(context, appWidgetId)
             }
+            ACTION_WIDGET_MUTE, ACTION_WIDGET_UNMUTE -> {
+                handleMuteToggle(context, appWidgetId)
+            }
             ACTION_WIDGET_CONFIGURE -> {
                 handleConfigure(context, appWidgetId)
             }
@@ -404,7 +442,10 @@ class VideoWidgetProvider : AppWidgetProvider() {
     private fun handleNext(context: Context, appWidgetId: Int) {
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
         
-        // TODO: Implement next video logic
+        // Use WidgetVideoManager for next video functionality
+        val videoManager = WidgetVideoManager.getInstance()
+        videoManager.initialize(context)
+        // TODO: Add next video functionality to WidgetVideoManager
         Log.d(TAG, "Next video requested for widget: $appWidgetId")
     }
     
@@ -414,7 +455,10 @@ class VideoWidgetProvider : AppWidgetProvider() {
     private fun handlePrevious(context: Context, appWidgetId: Int) {
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
         
-        // TODO: Implement previous video logic
+        // Use WidgetVideoManager for previous video functionality
+        val videoManager = WidgetVideoManager.getInstance()
+        videoManager.initialize(context)
+        // TODO: Add previous video functionality to WidgetVideoManager
         Log.d(TAG, "Previous video requested for widget: $appWidgetId")
     }
     
@@ -424,7 +468,10 @@ class VideoWidgetProvider : AppWidgetProvider() {
     private fun handleRewind(context: Context, appWidgetId: Int) {
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
         
-        // TODO: Implement rewind logic
+        // Use WidgetVideoManager for rewind seek
+        val videoManager = WidgetVideoManager.getInstance()
+        videoManager.initialize(context)
+        // TODO: Add seek rewind functionality to WidgetVideoManager
         Log.d(TAG, "Rewind requested for widget: $appWidgetId")
     }
     
@@ -434,8 +481,34 @@ class VideoWidgetProvider : AppWidgetProvider() {
     private fun handleForward(context: Context, appWidgetId: Int) {
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
         
-        // TODO: Implement fast forward logic
+        // Use WidgetVideoManager for forward seek
+        val videoManager = WidgetVideoManager.getInstance()
+        videoManager.initialize(context)
+        // TODO: Add seek forward functionality to WidgetVideoManager
         Log.d(TAG, "Fast forward requested for widget: $appWidgetId")
+    }
+    
+    /**
+     * Handle mute/unmute toggle action
+     */
+    private fun handleMuteToggle(context: Context, appWidgetId: Int) {
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
+        
+        Log.d(TAG, "Handling mute toggle for widget: $appWidgetId")
+        
+        // Toggle mute state
+        val currentMuteState = PreferenceUtils.getWidgetMuteState(context, appWidgetId)
+        val newMuteState = !currentMuteState
+        PreferenceUtils.setWidgetMuteState(context, appWidgetId, newMuteState)
+        
+        // Update video manager volume
+        val videoManager = WidgetVideoManager.getInstance()
+        videoManager.initialize(context)
+        videoManager.setVolume(context, appWidgetId, if (newMuteState) 0f else 1f)
+        
+        // Update widget to reflect new mute state
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        updateAppWidget(context, appWidgetManager, appWidgetId)
     }
     
     /**

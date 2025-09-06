@@ -219,7 +219,7 @@
                     android:layout_marginStart="8dp"
                     android:layout_marginEnd="8dp"
                     android:src="@drawable/ic_play"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:background="@drawable/widget_button_background"
                     android:contentDescription="@string/play"
                     android:scaleType="centerInside" />
 
@@ -241,6 +241,16 @@
                     android:src="@drawable/ic_skip_next"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Next"
+                    android:scaleType="centerInside" />
+
+                <ImageButton
+                    android:id="@+id/mute_button"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="8dp"
+                    android:src="@drawable/ic_volume_up"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/mute"
                     android:scaleType="centerInside" />
 
                 <ImageButton

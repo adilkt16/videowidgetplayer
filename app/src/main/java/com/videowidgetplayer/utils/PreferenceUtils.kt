@@ -10,6 +10,7 @@ object PreferenceUtils {
     private const val KEY_WIDGET_CONFIG = "widget_config_"
     private const val KEY_WIDGET_VIDEO_URI = "widget_video_uri_"
     private const val KEY_WIDGET_PLAY_STATE = "widget_play_state_"
+    private const val KEY_WIDGET_MUTE_STATE = "widget_mute_state_"
     private const val KEY_WIDGET_POSITION = "widget_position_"
     private const val KEY_WIDGET_TITLE = "widget_title_"
     private const val KEY_PLAYBACK_POSITION = "playback_position_"
@@ -41,6 +42,20 @@ object PreferenceUtils {
     
     fun setWidgetPlayState(context: Context, widgetId: Int, isPlaying: Boolean) {
         saveWidgetPlayState(context, widgetId, isPlaying)
+    }
+    
+    fun saveWidgetMuteState(context: Context, widgetId: Int, isMuted: Boolean) {
+        getSharedPreferences(context).edit()
+            .putBoolean(KEY_WIDGET_MUTE_STATE + widgetId, isMuted)
+            .apply()
+    }
+    
+    fun getWidgetMuteState(context: Context, widgetId: Int): Boolean {
+        return getSharedPreferences(context).getBoolean(KEY_WIDGET_MUTE_STATE + widgetId, true) // Default muted for widgets
+    }
+    
+    fun setWidgetMuteState(context: Context, widgetId: Int, isMuted: Boolean) {
+        saveWidgetMuteState(context, widgetId, isMuted)
     }
     
     fun saveWidgetPosition(context: Context, widgetId: Int, position: Long) {

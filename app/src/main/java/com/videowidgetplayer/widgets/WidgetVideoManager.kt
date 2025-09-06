@@ -316,6 +316,21 @@ class WidgetVideoManager private constructor() {
     }
     
     /**
+     * Set playback volume for widget
+     */
+    fun setVolume(context: Context, widgetId: Int, volume: Float) {
+        Log.d(TAG, "Setting volume for widget $widgetId: $volume")
+        
+        try {
+            videoPlaybackService?.setVolume(volume)
+            Log.d(TAG, "Volume set successfully")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting volume for widget: $widgetId", e)
+        }
+    }
+    
+    /**
      * Get video playback info
      */
     fun getPlaybackInfo(widgetId: Int): PlaybackInfo? {

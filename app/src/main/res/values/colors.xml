@@ -18,6 +18,13 @@
     <color name="widget_accent_color">#FF6200EE</color>
     <color name="widget_border_color">#FF333333</color>
     
+    <!-- Widget button states -->
+    <color name="widget_button_normal">#00000000</color>
+    <color name="widget_button_pressed">#66FFFFFF</color>
+    <color name="widget_button_focused">#44FFFFFF</color>
+    <color name="widget_button_active">#886200EE</color>
+    <color name="widget_button_border">#44FFFFFF</color>
+    
     <!-- App UI colors -->
     <color name="primary_color">@color/purple_500</color>
     <color name="background_color">#FFF5F5F5</color>

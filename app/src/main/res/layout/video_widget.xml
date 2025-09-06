@@ -120,7 +120,7 @@
                     android:id="@+id/previous_button"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="6dp"
                     android:src="@drawable/ic_skip_previous"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Previous"
@@ -128,9 +128,9 @@
 
                 <ImageButton
                     android:id="@+id/rewind_button"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_marginEnd="6dp"
                     android:src="@drawable/ic_rewind"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Rewind 10s"
@@ -138,20 +138,20 @@
 
                 <ImageButton
                     android:id="@+id/play_pause_button"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginEnd="6dp"
                     android:src="@drawable/ic_play"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:background="@drawable/widget_button_background"
                     android:contentDescription="@string/play"
                     android:scaleType="centerInside" />
 
                 <ImageButton
                     android:id="@+id/forward_button"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_marginStart="6dp"
                     android:src="@drawable/ic_fast_forward"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Forward 10s"
@@ -161,10 +161,21 @@
                     android:id="@+id/next_button"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginEnd="6dp"
                     android:src="@drawable/ic_skip_next"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Next"
+                    android:scaleType="centerInside" />
+
+                <ImageButton
+                    android:id="@+id/mute_button"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="6dp"
+                    android:src="@drawable/ic_volume_up"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/mute"
                     android:scaleType="centerInside" />
 
             </LinearLayout>
