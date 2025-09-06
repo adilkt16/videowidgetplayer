@@ -29,4 +29,50 @@
     <string name="widget_configure">Configure widget</string>
     <string name="widget_not_configured">Widget not configured. Tap to set up.</string>
     <string name="video_title_unknown">Unknown Video</string>
+    
+    <!-- Video Selection Activity -->
+    <string name="select_videos">Select Videos</string>
+    <string name="select_short_videos_hint">Videos ≤ 60 seconds</string>
+    <string name="no_videos_selected">No videos selected</string>
+    <string name="no_short_videos_found">No short videos found</string>
+    <string name="no_short_videos_description">No videos with duration ≤ 60 seconds were found on your device.</string>
+    <string name="loading_videos">Loading videos…</string>
+    <string name="confirm_selection">Confirm Selection</string>
+    <string name="confirm_selection_with_count">Confirm (%d videos)</string>
+    <string name="discard_selection">Discard Selection</string>
+    <string name="discard_selection_message">Are you sure you want to discard your current selection?</string>
+    <string name="keep_selecting">Keep Selecting</string>
+    <string name="discard">Discard</string>
+    <string name="close">Close</string>
+    <string name="retry">Retry</string>
+    <string name="error">Error</string>
+    <string name="error_loading_videos">Error loading videos from device storage</string>
+    <string name="error_saving_videos">Error saving selected videos</string>
+    <string name="video_permission_rationale">This app needs access to your videos to create video widgets. Please grant the media permission to continue.</string>
+    <string name="permission_denied_message">Media permission is required to access your videos. You can grant this permission in the app settings.</string>
+    
+    <!-- Video Details -->
+    <string name="video_details">Video Details</string>
+    <string name="file_name">File Name</string>
+    <string name="duration">Duration</string>
+    <string name="size">Size</string>
+    <string name="resolution">Resolution</string>
+    <string name="path">Path</string>
+    
+    <!-- Plurals -->
+    <plurals name="videos_selected_count">
+        <item quantity="zero">No videos selected</item>
+        <item quantity="one">%d video selected</item>
+        <item quantity="other">%d videos selected</item>
+    </plurals>
+    
+    <plurals name="confirm_video_selection_message">
+        <item quantity="one">Save %d selected video for use in widgets?</item>
+        <item quantity="other">Save %d selected videos for use in widgets?</item>
+    </plurals>
+    
+    <plurals name="videos_saved_message">
+        <item quantity="one">%d video saved successfully!</item>
+        <item quantity="other">%d videos saved successfully!</item>
+    </plurals>
 </resources>

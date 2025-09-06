@@ -17,4 +17,12 @@
     <color name="widget_text_color">#FFFFFFFF</color>
     <color name="widget_accent_color">#FF6200EE</color>
     <color name="widget_border_color">#FF333333</color>
+    
+    <!-- App UI colors -->
+    <color name="primary_color">@color/purple_500</color>
+    <color name="background_color">#FFF5F5F5</color>
+    <color name="surface_color">#FFFFFFFF</color>
+    <color name="text_primary">#FF212121</color>
+    <color name="text_secondary">#FF757575</color>
+    <color name="selection_overlay">#4D6200EE</color>
 </resources>

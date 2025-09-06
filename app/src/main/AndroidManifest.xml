@@ -48,6 +48,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Video Selection Activity -->
+        <activity
+            android:name=".ui.VideoSelectionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.VideoWidgetPlayer"
+            android:parentActivityName=".ui.MainActivity" />
+
         <!-- Video Widget Provider -->
         <receiver
             android:name=".widgets.VideoWidgetProvider"

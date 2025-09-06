@@ -84,6 +84,29 @@ object PreferenceUtils {
         return getSharedPreferences(context).getString(KEY_SELECTED_VIDEO_URI, null)
     }
     
+    // Multiple video URIs support
+    fun saveSelectedVideoUris(context: Context, uris: List<String>) {
+        val urisString = uris.joinToString("|")
+        getSharedPreferences(context).edit()
+            .putString("selected_video_uris", urisString)
+            .apply()
+    }
+    
+    fun getSelectedVideoUris(context: Context): List<String> {
+        val urisString = getSharedPreferences(context).getString("selected_video_uris", null)
+        return if (urisString.isNullOrEmpty()) {
+            emptyList()
+        } else {
+            urisString.split("|").filter { it.isNotEmpty() }
+        }
+    }
+    
+    fun clearSelectedVideoUris(context: Context) {
+        getSharedPreferences(context).edit()
+            .remove("selected_video_uris")
+            .apply()
+    }
+    
     // Legacy widget config methods (for backward compatibility)
     fun saveWidgetConfig(context: Context, widgetId: Int, videoUri: String) {
         getSharedPreferences(context).edit()
