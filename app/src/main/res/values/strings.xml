@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Video Widget Player</string>
+    <string name="welcome_message">Welcome to Video Widget Player!\n\nCreate video widgets for your home screen to quickly access and play your favorite videos.</string>
+    <string name="setup_widget">Setup Widget</string>
+    <string name="browse_videos">Browse Videos</string>
+    <string name="video_widget_name">Video Player</string>
+    <string name="configure_widget_title">Configure Video Widget</string>
+    <string name="configure_widget_description">Select a video to display in your widget. You can play and control the video directly from your home screen.</string>
+    <string name="select_video">Select Video</string>
+    <string name="add_widget">Add Widget</string>
+    <string name="cancel">Cancel</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="no_videos_found">No videos found</string>
+    <string name="permission_required">Media access permission required</string>
+</resources>
