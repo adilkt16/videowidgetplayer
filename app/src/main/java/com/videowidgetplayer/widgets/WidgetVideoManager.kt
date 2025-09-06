@@ -12,6 +12,7 @@ import android.widget.RemoteViews
 import com.videowidgetplayer.R
 import com.videowidgetplayer.data.VideoQueueManager
 import com.videowidgetplayer.services.VideoPlaybackService
+import com.videowidgetplayer.services.WidgetGestureService
 import com.videowidgetplayer.utils.PreferenceUtils
 
 class WidgetVideoManager private constructor() {
@@ -32,6 +33,8 @@ class WidgetVideoManager private constructor() {
     private var videoPlaybackService: VideoPlaybackService? = null
     private var isServiceConnected = false
     private val queueManager = VideoQueueManager.getInstance()
+    private val gestureManager = WidgetGestureManager.getInstance()
+    private val transitionManager = WidgetTransitionManager.getInstance()
     
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -407,6 +410,215 @@ class WidgetVideoManager private constructor() {
         } catch (e: Exception) {
             Log.e(TAG, "Error initializing video queue", e)
         }
+    }
+    
+    /**
+     * Navigate to next video with gesture transition
+     */
+    fun nextVideoWithGesture(
+        context: Context,
+        widgetId: Int,
+        gestureVelocity: Float = 0f,
+        enableTransition: Boolean = true
+    ) {
+        Log.d(TAG, "Navigating to next video with gesture for widget: $widgetId")
+        
+        try {
+            val currentVideoUri = PreferenceUtils.getWidgetVideoUri(context, widgetId)
+            val nextVideoUri = getNextVideoUri(context, widgetId)
+            
+            if (nextVideoUri != null) {
+                if (enableTransition && gestureManager.isGestureEnabled(context, widgetId)) {
+                    val transitionConfig = transitionManager.createTransitionForGesture(
+                        WidgetTransitionManager.SwipeDirection.LEFT,
+                        gestureVelocity
+                    )
+                    
+                    transitionManager.executeTransition(
+                        context = context,
+                        widgetId = widgetId,
+                        fromVideoUri = currentVideoUri,
+                        toVideoUri = nextVideoUri,
+                        direction = WidgetTransitionManager.SwipeDirection.LEFT,
+                        config = transitionConfig
+                    )
+                } else {
+                    // Standard navigation without transition
+                    nextVideo(context, widgetId)
+                }
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to next video with gesture", e)
+            // Fallback to standard navigation
+            nextVideo(context, widgetId)
+        }
+    }
+    
+    /**
+     * Navigate to previous video with gesture transition
+     */
+    fun previousVideoWithGesture(
+        context: Context,
+        widgetId: Int,
+        gestureVelocity: Float = 0f,
+        enableTransition: Boolean = true
+    ) {
+        Log.d(TAG, "Navigating to previous video with gesture for widget: $widgetId")
+        
+        try {
+            val currentVideoUri = PreferenceUtils.getWidgetVideoUri(context, widgetId)
+            val previousVideoUri = getPreviousVideoUri(context, widgetId)
+            
+            if (previousVideoUri != null) {
+                if (enableTransition && gestureManager.isGestureEnabled(context, widgetId)) {
+                    val transitionConfig = transitionManager.createTransitionForGesture(
+                        WidgetTransitionManager.SwipeDirection.RIGHT,
+                        gestureVelocity
+                    )
+                    
+                    transitionManager.executeTransition(
+                        context = context,
+                        widgetId = widgetId,
+                        fromVideoUri = currentVideoUri,
+                        toVideoUri = previousVideoUri,
+                        direction = WidgetTransitionManager.SwipeDirection.RIGHT,
+                        config = transitionConfig
+                    )
+                } else {
+                    // Standard navigation without transition
+                    previousVideo(context, widgetId)
+                }
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to previous video with gesture", e)
+            // Fallback to standard navigation
+            previousVideo(context, widgetId)
+        }
+    }
+    
+    /**
+     * Enable gesture support for widget
+     */
+    fun enableGestureSupport(context: Context, widgetId: Int) {
+        Log.d(TAG, "Enabling gesture support for widget: $widgetId")
+        
+        try {
+            gestureManager.setGestureEnabled(context, widgetId, true)
+            
+            // Start gesture detection service
+            val intent = Intent(context, WidgetGestureService::class.java).apply {
+                action = WidgetGestureService.ACTION_START_GESTURE_DETECTION
+                putExtra(WidgetGestureService.EXTRA_WIDGET_ID, widgetId)
+                // Note: Widget bounds would need to be determined from AppWidgetManager
+            }
+            context.startService(intent)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error enabling gesture support for widget $widgetId", e)
+        }
+    }
+    
+    /**
+     * Disable gesture support for widget
+     */
+    fun disableGestureSupport(context: Context, widgetId: Int) {
+        Log.d(TAG, "Disabling gesture support for widget: $widgetId")
+        
+        try {
+            gestureManager.setGestureEnabled(context, widgetId, false)
+            
+            // Stop gesture detection service
+            val intent = Intent(context, WidgetGestureService::class.java).apply {
+                action = WidgetGestureService.ACTION_STOP_GESTURE_DETECTION
+                putExtra(WidgetGestureService.EXTRA_WIDGET_ID, widgetId)
+            }
+            context.startService(intent)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error disabling gesture support for widget $widgetId", e)
+        }
+    }
+    
+    /**
+     * Set gesture sensitivity for widget
+     */
+    fun setGestureSensitivity(context: Context, widgetId: Int, sensitivity: Int) {
+        gestureManager.setGestureSensitivity(context, widgetId, sensitivity)
+        Log.d(TAG, "Set gesture sensitivity for widget $widgetId to level $sensitivity")
+    }
+    
+    /**
+     * Get next video URI without navigating
+     */
+    private fun getNextVideoUri(context: Context, widgetId: Int): String? {
+        return try {
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) return null
+            
+            if (!queueManager.hasQueue(widgetId)) {
+                initializeQueueIfNeeded(context, widgetId, videoUris)
+            }
+            
+            // Peek at next video without changing position
+            val queue = queueManager.getQueue(widgetId)
+            if (queue != null && queueManager.hasNext(widgetId)) {
+                val nextIndex = queue.getNextIndex()
+                if (nextIndex >= 0 && nextIndex < queue.videos.size) {
+                    queue.videos[nextIndex]
+                } else null
+            } else null
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting next video URI", e)
+            null
+        }
+    }
+    
+    /**
+     * Get previous video URI without navigating
+     */
+    private fun getPreviousVideoUri(context: Context, widgetId: Int): String? {
+        return try {
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) return null
+            
+            if (!queueManager.hasQueue(widgetId)) {
+                initializeQueueIfNeeded(context, widgetId, videoUris)
+            }
+            
+            // Peek at previous video without changing position
+            val queue = queueManager.getQueue(widgetId)
+            if (queue != null && queueManager.hasPrevious(widgetId)) {
+                val previousIndex = queue.getPreviousIndex()
+                if (previousIndex >= 0 && previousIndex < queue.videos.size) {
+                    queue.videos[previousIndex]
+                } else null
+            } else null
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting previous video URI", e)
+            null
+        }
+    }
+    
+    /**
+     * Initialize queue if needed
+     */
+    private fun initializeQueueIfNeeded(context: Context, widgetId: Int, videoUris: List<String>) {
+        val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+        val isShuffleEnabled = PreferenceUtils.getWidgetShuffleEnabled(context, widgetId)
+        val loopMode = PreferenceUtils.getWidgetLoopMode(context, widgetId)
+        
+        queueManager.initializeQueue(
+            context = context,
+            widgetId = widgetId,
+            videoUris = videoUris,
+            startIndex = currentIndex,
+            shuffleEnabled = isShuffleEnabled,
+            loopMode = VideoQueueManager.LoopMode.values()[loopMode]
+        )
     }
     
     /**

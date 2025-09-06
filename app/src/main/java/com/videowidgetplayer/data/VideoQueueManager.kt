@@ -378,6 +378,36 @@ data class VideoQueue(
             }
         }
     }
+    
+    /**
+     * Get next index without changing current position
+     */
+    fun getNextIndex(): Int {
+        return when (loopMode) {
+            LoopMode.NONE -> {
+                if (currentIndex < videos.size - 1) currentIndex + 1 else -1
+            }
+            LoopMode.SINGLE -> currentIndex // Stay on same video
+            LoopMode.ALL -> {
+                if (currentIndex < videos.size - 1) currentIndex + 1 else 0
+            }
+        }
+    }
+    
+    /**
+     * Get previous index without changing current position
+     */
+    fun getPreviousIndex(): Int {
+        return when (loopMode) {
+            LoopMode.NONE -> {
+                if (currentIndex > 0) currentIndex - 1 else -1
+            }
+            LoopMode.SINGLE -> currentIndex // Stay on same video
+            LoopMode.ALL -> {
+                if (currentIndex > 0) currentIndex - 1 else videos.size - 1
+            }
+        }
+    }
 }
 
 /**

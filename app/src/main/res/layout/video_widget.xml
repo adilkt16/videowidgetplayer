@@ -85,6 +85,20 @@
                 android:layout_height="32dp"
                 android:layout_gravity="center"
                 android:visibility="gone" />
+                
+            <!-- Transition hint text -->
+            <TextView
+                android:id="@+id/transition_hint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center|bottom"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/rounded_background"
+                android:padding="8dp"
+                android:textColor="@android:color/white"
+                android:textSize="12sp"
+                android:visibility="gone"
+                android:alpha="0.8" />
 
         </FrameLayout>
 

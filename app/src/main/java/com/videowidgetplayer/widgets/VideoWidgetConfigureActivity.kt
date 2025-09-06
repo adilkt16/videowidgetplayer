@@ -74,8 +74,41 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
             selectVideosForWidget()
         }
         
+        // Set up gesture settings if available in layout
+        setupGestureSettings()
+        
         // Update UI based on selected videos
         updateVideoSelectionDisplay()
+    }
+    
+    private fun setupGestureSettings() {
+        try {
+            // Check if gesture settings views exist
+            val gestureToggle = binding.root.findViewById<android.widget.Switch>(R.id.gesture_enabled_switch)
+            val sensitivitySpinner = binding.root.findViewById<android.widget.Spinner>(R.id.gesture_sensitivity_spinner)
+            
+            if (gestureToggle != null) {
+                // Set default gesture enabled state
+                gestureToggle.isChecked = true
+                
+                gestureToggle.setOnCheckedChangeListener { _, isChecked ->
+                    Log.d(TAG, "Gesture enabled changed: $isChecked")
+                    sensitivitySpinner?.isEnabled = isChecked
+                }
+            }
+            
+            if (sensitivitySpinner != null) {
+                // Setup sensitivity options
+                val sensitivities = arrayOf("Low", "Medium", "High")
+                val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, sensitivities)
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                sensitivitySpinner.adapter = adapter
+                sensitivitySpinner.setSelection(1) // Default to Medium
+            }
+            
+        } catch (e: Exception) {
+            Log.d(TAG, "Gesture settings not available in layout", e)
+        }
     }
     
     private fun selectVideosForWidget() {
@@ -145,6 +178,9 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
                 PreferenceUtils.setWidgetVideoUri(context, appWidgetId, selectedVideoUris[0])
             }
             
+            // Apply gesture settings
+            applyGestureSettings(context, videoManager)
+            
             // Configure the widget
             val appWidgetManager = AppWidgetManager.getInstance(context)
             VideoWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId)
@@ -158,6 +194,30 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "Error configuring widget", e)
             Toast.makeText(this, "Error configuring widget", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun applyGestureSettings(context: Context, videoManager: WidgetVideoManager) {
+        try {
+            val gestureToggle = binding.root.findViewById<android.widget.Switch>(R.id.gesture_enabled_switch)
+            val sensitivitySpinner = binding.root.findViewById<android.widget.Spinner>(R.id.gesture_sensitivity_spinner)
+            
+            val gestureEnabled = gestureToggle?.isChecked ?: true
+            val sensitivityLevel = sensitivitySpinner?.selectedItemPosition ?: WidgetGestureManager.SENSITIVITY_MEDIUM
+            
+            if (gestureEnabled) {
+                videoManager.enableGestureSupport(context, appWidgetId)
+                videoManager.setGestureSensitivity(context, appWidgetId, sensitivityLevel)
+                Log.d(TAG, "Enabled gestures with sensitivity level $sensitivityLevel")
+            } else {
+                videoManager.disableGestureSupport(context, appWidgetId)
+                Log.d(TAG, "Disabled gestures for widget")
+            }
+            
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not apply gesture settings, using defaults", e)
+            // Enable gestures by default if settings are not available
+            videoManager.enableGestureSupport(context, appWidgetId)
         }
     }
 }

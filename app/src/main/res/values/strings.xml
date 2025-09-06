@@ -33,6 +33,14 @@
     <string name="video_title_unknown">Unknown Video</string>
     <string name="videos_selected">%d videos selected</string>
     
+    <!-- Gesture Settings -->
+    <string name="gesture_settings">Gesture Settings</string>
+    <string name="enable_swipe_gestures">Enable swipe gestures</string>
+    <string name="gesture_sensitivity">Gesture sensitivity</string>
+    <string name="gesture_sensitivity_low">Low</string>
+    <string name="gesture_sensitivity_medium">Medium</string>
+    <string name="gesture_sensitivity_high">High</string>
+    
     <!-- Video Selection Activity -->
     <string name="select_videos">Select Videos</string>
     <string name="select_short_videos_hint">Videos ≤ 60 seconds</string>

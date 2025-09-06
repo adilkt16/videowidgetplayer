@@ -25,6 +25,10 @@
     <color name="widget_button_active">#886200EE</color>
     <color name="widget_button_border">#44FFFFFF</color>
     
+    <!-- Transition hint colors -->
+    <color name="widget_transition_hint_background">#DD000000</color>
+    <color name="widget_transition_hint_border">#66FFFFFF</color>
+    
     <!-- App UI colors -->
     <color name="primary_color">@color/purple_500</color>
     <color name="background_color">#FFF5F5F5</color>

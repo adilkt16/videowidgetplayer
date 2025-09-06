@@ -23,6 +23,9 @@
     
     <!-- Widget update permission -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    
+    <!-- Overlay permission for gesture detection -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:allowBackup="true"
@@ -89,6 +92,22 @@
             android:name=".services.VideoPlaybackService"
             android:exported="false"
             android:enabled="true" />
+            
+        <!-- Widget Gesture Service -->
+        <service
+            android:name=".services.WidgetGestureService"
+            android:exported="false"
+            android:enabled="true" />
+            
+        <!-- Widget Gesture Receiver -->
+        <receiver
+            android:name=".receivers.WidgetGestureReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.videowidgetplayer.action.GESTURE_next" />
+                <action android:name="com.videowidgetplayer.action.GESTURE_previous" />
+            </intent-filter>
+        </receiver>
 
         <!-- Boot receiver for widget updates -->
         <receiver
