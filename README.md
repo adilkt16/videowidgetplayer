@@ -143,52 +143,34 @@ cd VideoWidgetPlayer
 - Uses ViewBinding for type-safe view access
 - Implements proper lifecycle management
 
-## Git Workflow & Branch Strategy
+## Git Workflow & Development
 
-This project follows a structured Git workflow to maintain code quality and facilitate collaboration:
+This project uses a simplified Git workflow suitable for personal or small team development:
 
-### Branch Structure
-- **`main`**: Production-ready code, stable releases only
-- **`develop`**: Integration branch for features, latest development code
-- **`feature/*`**: Feature development branches (e.g., `feature/video-player-ui`)
-- **`bugfix/*`**: Bug fix branches (e.g., `bugfix/widget-resize-issue`)
-- **`hotfix/*`**: Critical fixes for production (e.g., `hotfix/crash-on-startup`)
-- **`release/*`**: Release preparation branches (e.g., `release/v1.0.0`)
+### Simple Workflow
+- **`main`**: Primary development branch - all changes go here
+- **Optional feature branches**: For larger features that need isolation
 
-### Workflow Guidelines
+### Development Process
 
-#### For New Features:
-1. Create feature branch from `develop`: `git checkout -b feature/feature-name develop`
-2. Develop the feature with meaningful commits
-3. Create pull request to merge into `develop`
-4. Code review and testing
-5. Merge into `develop` after approval
+#### For Most Changes (Recommended):
+1. Work directly on `main` branch
+2. Make small, focused commits
+3. Push changes regularly: `git push`
+4. Tag releases when ready: `git tag v1.0.0`
 
-#### For Bug Fixes:
-1. Create bugfix branch from `develop`: `git checkout -b bugfix/issue-description develop`
-2. Fix the issue and test thoroughly
-3. Create pull request to merge into `develop`
-4. After approval, merge into `develop`
-
-#### For Releases:
-1. Create release branch from `develop`: `git checkout -b release/v1.0.0 develop`
-2. Final testing and version updates
-3. Merge into both `main` and `develop`
-4. Tag the release: `git tag v1.0.0`
-
-#### For Hotfixes:
-1. Create hotfix branch from `main`: `git checkout -b hotfix/critical-fix main`
-2. Fix the critical issue
-3. Merge into both `main` and `develop`
-4. Tag if necessary
+#### For Larger Features (Optional):
+1. Create feature branch: `git checkout -b feature-name`
+2. Develop the feature with clear commits
+3. Merge back to main: `git checkout main && git merge feature-name`
+4. Delete feature branch: `git branch -d feature-name`
 
 ### Commit Message Guidelines
-- Use conventional commits format: `type(scope): description`
-- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
-- Examples:
-  - `feat(widget): add video thumbnail preview`
-  - `fix(player): resolve ExoPlayer memory leak`
-  - `docs(readme): update setup instructions`
+Use clear, descriptive commit messages:
+- `Add video thumbnail preview to widget`
+- `Fix ExoPlayer memory leak issue`
+- `Update README with setup instructions`
+- `Refactor VideoPlayerManager for better performance`
 
 ## Future Enhancements
 
