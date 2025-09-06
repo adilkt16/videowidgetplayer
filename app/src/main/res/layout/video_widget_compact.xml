@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/widget_margin"
+    android:background="@drawable/widget_background">
+
+    <!-- Compact widget layout for 4x3 size -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Video display area (larger portion) -->
+        <FrameLayout
+            android:id="@+id/video_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@android:color/black">
+
+            <!-- Video thumbnail/preview -->
+            <ImageView
+                android:id="@+id/video_thumbnail"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_video_placeholder"
+                android:contentDescription="Video thumbnail" />
+
+            <!-- Play overlay -->
+            <ImageView
+                android:id="@+id/play_overlay"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_play_circle"
+                android:contentDescription="Play video"
+                android:alpha="0.8" />
+
+            <!-- Widget title overlay -->
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top"
+                android:text="@string/video_widget_name"
+                android:textColor="@color/widget_text_color"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:background="@color/widget_header_background"
+                android:padding="4dp"
+                android:ellipsize="end"
+                android:maxLines="1" />
+
+        </FrameLayout>
+
+        <!-- Compact control panel -->
+        <LinearLayout
+            android:id="@+id/control_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/widget_control_background"
+            android:padding="4dp"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/previous_button"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="4dp"
+                android:src="@drawable/ic_skip_previous"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Previous"
+                android:scaleType="centerInside" />
+
+            <ImageButton
+                android:id="@+id/play_pause_button"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:src="@drawable/ic_play"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/play"
+                android:scaleType="centerInside" />
+
+            <ImageButton
+                android:id="@+id/next_button"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="4dp"
+                android:src="@drawable/ic_skip_next"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Next"
+                android:scaleType="centerInside" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

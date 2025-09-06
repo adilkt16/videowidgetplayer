@@ -20,4 +20,13 @@
     <string name="open_settings">Open Settings</string>
     <string name="widget_update_failed">Failed to update widget</string>
     <string name="video_load_error">Error loading video</string>
+    <string name="rewind_10s">Rewind 10 seconds</string>
+    <string name="forward_10s">Forward 10 seconds</string>
+    <string name="previous_video">Previous video</string>
+    <string name="next_video">Next video</string>
+    <string name="shuffle">Shuffle</string>
+    <string name="repeat">Repeat</string>
+    <string name="widget_configure">Configure widget</string>
+    <string name="widget_not_configured">Widget not configured. Tap to set up.</string>
+    <string name="video_title_unknown">Unknown Video</string>
 </resources>

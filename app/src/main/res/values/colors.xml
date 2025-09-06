@@ -9,4 +9,12 @@
     <color name="white">#FFFFFFFF</color>
     <color name="light_blue_200">#FF81D4FA</color>
     <color name="light_blue_600">#FF039BE5</color>
+    
+    <!-- Widget specific colors -->
+    <color name="widget_background">#E0000000</color>
+    <color name="widget_header_background">#AA000000</color>
+    <color name="widget_control_background">#CC000000</color>
+    <color name="widget_text_color">#FFFFFFFF</color>
+    <color name="widget_accent_color">#FF6200EE</color>
+    <color name="widget_border_color">#FF333333</color>
 </resources>

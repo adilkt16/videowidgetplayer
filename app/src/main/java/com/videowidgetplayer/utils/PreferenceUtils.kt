@@ -3,51 +3,148 @@ package com.videowidgetplayer.utils
 import android.content.Context
 import android.content.SharedPreferences
 
-class PreferenceUtils(context: Context) {
+object PreferenceUtils {
     
-    private val sharedPreferences: SharedPreferences = 
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private const val PREFS_NAME = "video_widget_prefs"
+    private const val KEY_SELECTED_VIDEO_URI = "selected_video_uri"
+    private const val KEY_WIDGET_CONFIG = "widget_config_"
+    private const val KEY_WIDGET_VIDEO_URI = "widget_video_uri_"
+    private const val KEY_WIDGET_PLAY_STATE = "widget_play_state_"
+    private const val KEY_WIDGET_POSITION = "widget_position_"
+    private const val KEY_WIDGET_TITLE = "widget_title_"
+    private const val KEY_PLAYBACK_POSITION = "playback_position_"
     
-    companion object {
-        private const val PREFS_NAME = "video_widget_prefs"
-        private const val KEY_SELECTED_VIDEO_URI = "selected_video_uri"
-        private const val KEY_WIDGET_CONFIG = "widget_config_"
-        private const val KEY_PLAYBACK_POSITION = "playback_position_"
+    private fun getSharedPreferences(context: Context): SharedPreferences {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
     
-    fun saveSelectedVideoUri(uri: String) {
-        sharedPreferences.edit()
+    // Widget-specific preferences
+    fun saveWidgetVideoUri(context: Context, widgetId: Int, uri: String) {
+        getSharedPreferences(context).edit()
+            .putString(KEY_WIDGET_VIDEO_URI + widgetId, uri)
+            .apply()
+    }
+    
+    fun getWidgetVideoUri(context: Context, widgetId: Int): String? {
+        return getSharedPreferences(context).getString(KEY_WIDGET_VIDEO_URI + widgetId, null)
+    }
+    
+    fun saveWidgetPlayState(context: Context, widgetId: Int, isPlaying: Boolean) {
+        getSharedPreferences(context).edit()
+            .putBoolean(KEY_WIDGET_PLAY_STATE + widgetId, isPlaying)
+            .apply()
+    }
+    
+    fun getWidgetPlayState(context: Context, widgetId: Int): Boolean {
+        return getSharedPreferences(context).getBoolean(KEY_WIDGET_PLAY_STATE + widgetId, false)
+    }
+    
+    fun setWidgetPlayState(context: Context, widgetId: Int, isPlaying: Boolean) {
+        saveWidgetPlayState(context, widgetId, isPlaying)
+    }
+    
+    fun saveWidgetPosition(context: Context, widgetId: Int, position: Long) {
+        getSharedPreferences(context).edit()
+            .putLong(KEY_WIDGET_POSITION + widgetId, position)
+            .apply()
+    }
+    
+    fun getWidgetPosition(context: Context, widgetId: Int): Long {
+        return getSharedPreferences(context).getLong(KEY_WIDGET_POSITION + widgetId, 0L)
+    }
+    
+    fun saveWidgetTitle(context: Context, widgetId: Int, title: String) {
+        getSharedPreferences(context).edit()
+            .putString(KEY_WIDGET_TITLE + widgetId, title)
+            .apply()
+    }
+    
+    fun getWidgetTitle(context: Context, widgetId: Int): String? {
+        return getSharedPreferences(context).getString(KEY_WIDGET_TITLE + widgetId, null)
+    }
+    
+    fun deleteWidgetPreferences(context: Context, widgetId: Int) {
+        getSharedPreferences(context).edit()
+            .remove(KEY_WIDGET_VIDEO_URI + widgetId)
+            .remove(KEY_WIDGET_PLAY_STATE + widgetId)
+            .remove(KEY_WIDGET_POSITION + widgetId)
+            .remove(KEY_WIDGET_TITLE + widgetId)
+            .remove(KEY_WIDGET_CONFIG + widgetId) // Legacy support
+            .apply()
+    }
+    
+    // General app preferences
+    fun saveSelectedVideoUri(context: Context, uri: String) {
+        getSharedPreferences(context).edit()
             .putString(KEY_SELECTED_VIDEO_URI, uri)
             .apply()
     }
     
-    fun getSelectedVideoUri(): String? {
-        return sharedPreferences.getString(KEY_SELECTED_VIDEO_URI, null)
+    fun getSelectedVideoUri(context: Context): String? {
+        return getSharedPreferences(context).getString(KEY_SELECTED_VIDEO_URI, null)
     }
     
-    fun saveWidgetConfig(widgetId: Int, videoUri: String) {
-        sharedPreferences.edit()
+    // Legacy widget config methods (for backward compatibility)
+    fun saveWidgetConfig(context: Context, widgetId: Int, videoUri: String) {
+        getSharedPreferences(context).edit()
             .putString(KEY_WIDGET_CONFIG + widgetId, videoUri)
             .apply()
     }
     
-    fun getWidgetConfig(widgetId: Int): String? {
-        return sharedPreferences.getString(KEY_WIDGET_CONFIG + widgetId, null)
+    fun getWidgetConfig(context: Context, widgetId: Int): String? {
+        return getSharedPreferences(context).getString(KEY_WIDGET_CONFIG + widgetId, null)
     }
     
-    fun removeWidgetConfig(widgetId: Int) {
-        sharedPreferences.edit()
+    fun removeWidgetConfig(context: Context, widgetId: Int) {
+        getSharedPreferences(context).edit()
             .remove(KEY_WIDGET_CONFIG + widgetId)
             .apply()
     }
     
-    fun savePlaybackPosition(videoUri: String, position: Long) {
-        sharedPreferences.edit()
+    // Video playback preferences
+    fun savePlaybackPosition(context: Context, videoUri: String, position: Long) {
+        getSharedPreferences(context).edit()
             .putLong(KEY_PLAYBACK_POSITION + videoUri.hashCode(), position)
             .apply()
     }
     
-    fun getPlaybackPosition(videoUri: String): Long {
-        return sharedPreferences.getLong(KEY_PLAYBACK_POSITION + videoUri.hashCode(), 0L)
+    fun getPlaybackPosition(context: Context, videoUri: String): Long {
+        return getSharedPreferences(context).getLong(KEY_PLAYBACK_POSITION + videoUri.hashCode(), 0L)
+    }
+    
+    // Utility methods
+    fun hasWidgetConfiguration(context: Context, widgetId: Int): Boolean {
+        return getWidgetVideoUri(context, widgetId) != null || 
+               getWidgetConfig(context, widgetId) != null
+    }
+    
+    fun getAllConfiguredWidgets(context: Context): List<Int> {
+        val prefs = getSharedPreferences(context)
+        val configuredWidgets = mutableListOf<Int>()
+        
+        for (key in prefs.all.keys) {
+            when {
+                key.startsWith(KEY_WIDGET_VIDEO_URI) -> {
+                    val widgetId = key.removePrefix(KEY_WIDGET_VIDEO_URI).toIntOrNull()
+                    if (widgetId != null && prefs.getString(key, null) != null) {
+                        configuredWidgets.add(widgetId)
+                    }
+                }
+                key.startsWith(KEY_WIDGET_CONFIG) -> {
+                    val widgetId = key.removePrefix(KEY_WIDGET_CONFIG).toIntOrNull()
+                    if (widgetId != null && prefs.getString(key, null) != null) {
+                        if (!configuredWidgets.contains(widgetId)) {
+                            configuredWidgets.add(widgetId)
+                        }
+                    }
+                }
+            }
+        }
+        
+        return configuredWidgets.sorted()
+    }
+    
+    fun clearAllPreferences(context: Context) {
+        getSharedPreferences(context).edit().clear().apply()
     }
 }
