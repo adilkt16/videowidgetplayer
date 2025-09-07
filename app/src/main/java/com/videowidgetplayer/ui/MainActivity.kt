@@ -90,8 +90,8 @@ class MainActivity : AppCompatActivity() {
             onViewVideo = { video ->
                 openVideoPlayer(video)
             },
-            onRemoveVideo = { video ->
-                removeVideo(video)
+            onRemoveVideo = { position ->
+                removeVideoAtPosition(position)
             }
         )
         
@@ -236,14 +236,43 @@ class MainActivity : AppCompatActivity() {
         return uri.lastPathSegment ?: "Unknown file"
     }
 
-    private fun removeVideo(video: VideoFile) {
-        val removedVideo = selectedVideos.find { it.id == video.id }
-        if (removedVideo != null) {
-            selectedVideos.remove(removedVideo)
+    private fun removeVideoAtPosition(position: Int) {
+        android.util.Log.d("MainActivity", "Attempting to remove video at position: $position")
+        android.util.Log.d("MainActivity", "Current selectedVideos list size: ${selectedVideos.size}")
+        
+        if (position >= 0 && position < selectedVideos.size) {
+            val removedVideo = selectedVideos.removeAt(position)
+            android.util.Log.d("MainActivity", "Successfully removed video at position $position: ${removedVideo.name}")
+            
             // Save the updated list to persistence
             selectedVideosManager.saveSelectedVideos(selectedVideos)
             updateUI()
             Toast.makeText(this, "Video '${removedVideo.name}' removed", Toast.LENGTH_SHORT).show()
+        } else {
+            android.util.Log.w("MainActivity", "Invalid position: $position (list size: ${selectedVideos.size})")
+            Toast.makeText(this, "Could not remove video - invalid position", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun removeVideo(video: VideoFile) {
+        android.util.Log.d("MainActivity", "Attempting to remove video: ${video.name} (id=${video.id})")
+        android.util.Log.d("MainActivity", "Current selectedVideos list:")
+        selectedVideos.forEachIndexed { index, v ->
+            android.util.Log.d("MainActivity", "  [$index] ${v.name} (id=${v.id})")
+        }
+        
+        val indexToRemove = selectedVideos.indexOfFirst { it.id == video.id }
+        if (indexToRemove != -1) {
+            val removedVideo = selectedVideos.removeAt(indexToRemove)
+            android.util.Log.d("MainActivity", "Successfully removed video at index $indexToRemove: ${removedVideo.name}")
+            
+            // Save the updated list to persistence
+            selectedVideosManager.saveSelectedVideos(selectedVideos)
+            updateUI()
+            Toast.makeText(this, "Video '${removedVideo.name}' removed", Toast.LENGTH_SHORT).show()
+        } else {
+            android.util.Log.w("MainActivity", "Video not found in list: ${video.name} (id=${video.id})")
+            Toast.makeText(this, "Could not find video to remove", Toast.LENGTH_SHORT).show()
         }
     }
 

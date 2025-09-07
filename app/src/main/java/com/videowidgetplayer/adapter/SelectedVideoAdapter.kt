@@ -18,7 +18,7 @@ import com.videowidgetplayer.data.VideoFile
  */
 class SelectedVideoAdapter(
     private val onViewVideo: (VideoFile) -> Unit,
-    private val onRemoveVideo: (VideoFile) -> Unit
+    private val onRemoveVideo: (Int) -> Unit  // Changed to pass position instead of video
 ) : ListAdapter<VideoFile, SelectedVideoAdapter.SelectedVideoViewHolder>(VideoDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SelectedVideoViewHolder {
@@ -51,13 +51,22 @@ class SelectedVideoAdapter(
                 .centerCrop()
                 .into(thumbnailImageView)
             
-            // Set button click listeners
+            // Set button click listeners using bindingAdapterPosition to get the correct video
             viewButton.setOnClickListener {
-                onViewVideo(video)
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    val currentVideo = getItem(position)
+                    onViewVideo(currentVideo)
+                }
             }
             
             removeButton.setOnClickListener {
-                onRemoveVideo(video)
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    val currentVideo = getItem(position)
+                    android.util.Log.d("SelectedVideoAdapter", "Remove clicked at position $position for video: ${currentVideo.name} (id=${currentVideo.id})")
+                    onRemoveVideo(position)  // Pass position instead of video object
+                }
             }
         }
     }
