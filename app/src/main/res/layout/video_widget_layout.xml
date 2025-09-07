@@ -4,13 +4,54 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background">
 
-    <!-- Video Display Area -->
+    <!-- Video Display Area - Using ImageView for better widget support -->
+    <ImageView
+        android:id="@+id/videoDisplay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="Video display" />
+    
+    <!-- Fallback thumbnail when video is not playing -->
     <ImageView
         android:id="@+id/videoThumbnail"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
-        android:contentDescription="Video thumbnail" />
+        android:contentDescription="Video thumbnail"
+        android:visibility="gone" />
+
+    <!-- Video Info Overlay -->
+    <LinearLayout
+        android:id="@+id/videoInfoOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="@drawable/control_background"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/videoTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/videoCounter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:textSize="10sp"
+            android:layout_marginStart="8dp" />
+
+    </LinearLayout>
 
     <!-- Control Overlay -->
     <LinearLayout

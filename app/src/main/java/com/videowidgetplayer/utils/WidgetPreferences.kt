@@ -83,10 +83,10 @@ class WidgetPreferences(private val context: Context) {
     }
     
     /**
-     * Get muted state
+     * Get muted state (default to true for widget videos)
      */
     fun getMutedState(appWidgetId: Int): Boolean {
-        return prefs.getBoolean(PREF_PREFIX_KEY + appWidgetId + PREF_IS_MUTED, false)
+        return prefs.getBoolean(PREF_PREFIX_KEY + appWidgetId + PREF_IS_MUTED, true) // Default muted
     }
     
     /**

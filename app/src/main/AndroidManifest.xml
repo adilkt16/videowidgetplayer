@@ -70,6 +70,11 @@
             android:name=".service.WidgetUpdateService"
             android:exported="false" />
 
+        <!-- Widget Video Service for muted video playback -->
+        <service
+            android:name=".service.WidgetVideoService"
+            android:exported="false" />
+
     </application>
 
 </manifest>

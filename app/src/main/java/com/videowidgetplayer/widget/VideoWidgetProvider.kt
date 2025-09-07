@@ -13,6 +13,7 @@ import com.bumptech.glide.request.transition.Transition
 import com.videowidgetplayer.R
 import com.videowidgetplayer.data.VideoRepository
 import com.videowidgetplayer.service.WidgetUpdateService
+import com.videowidgetplayer.service.WidgetVideoService
 import com.videowidgetplayer.utils.WidgetPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +21,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Video Widget Provider
- * Following the spec: Widget-first design with video playback controls
+ * Enhanced to display selected videos from homescreen and enable muted video playback
  */
 class VideoWidgetProvider : AppWidgetProvider() {
 
@@ -40,7 +41,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         ) {
             val widgetPrefs = WidgetPreferences(context)
             
-            // Check if widget is configured by looking at selected videos
+            // Get selected videos from homescreen
             val selectedVideosManager = com.videowidgetplayer.data.SelectedVideosManager(context)
             val selectedVideos = selectedVideosManager.loadSelectedVideos()
             
@@ -49,32 +50,33 @@ class VideoWidgetProvider : AppWidgetProvider() {
                 return
             }
 
-            // Use selected videos for widget
+            // Save selected videos to widget preferences for consistency
             val videoUris = selectedVideos.map { it.uri }
             widgetPrefs.saveVideoUris(appWidgetId, videoUris)
             
+            // Get current video from selected list
             val currentIndex = widgetPrefs.getCurrentVideoIndex(appWidgetId)
+            val adjustedIndex = if (currentIndex < selectedVideos.size) currentIndex else 0
+            
+            if (adjustedIndex != currentIndex) {
+                widgetPrefs.saveCurrentVideoIndex(appWidgetId, adjustedIndex)
+            }
+            
+            val currentVideo = selectedVideos[adjustedIndex]
             val isPlaying = widgetPrefs.getPlayingState(appWidgetId)
             val isMuted = widgetPrefs.getMutedState(appWidgetId)
             
-            val currentVideoUri = if (currentIndex < videoUris.size) {
-                videoUris[currentIndex]
-            } else {
-                videoUris.firstOrNull()
-            }
-
-            if (currentVideoUri != null) {
-                updateConfiguredWidget(
-                    context, 
-                    appWidgetManager, 
-                    appWidgetId, 
-                    currentVideoUri, 
-                    isPlaying, 
-                    isMuted
-                )
-            } else {
-                updateUnconfiguredWidget(context, appWidgetManager, appWidgetId)
-            }
+            updateConfiguredWidget(
+                context, 
+                appWidgetManager, 
+                appWidgetId, 
+                currentVideo.uri, 
+                isPlaying, 
+                isMuted,
+                currentVideo.name,
+                selectedVideos.size,
+                adjustedIndex + 1
+            )
         }
 
         private fun updateConfiguredWidget(
@@ -83,7 +85,10 @@ class VideoWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int,
             videoUri: Uri,
             isPlaying: Boolean,
-            isMuted: Boolean
+            isMuted: Boolean,
+            videoName: String,
+            totalVideos: Int,
+            currentPosition: Int
         ) {
             val views = RemoteViews(context.packageName, R.layout.video_widget_layout)
 
@@ -96,19 +101,38 @@ class VideoWidgetProvider : AppWidgetProvider() {
                 if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
             )
 
-            // Update mute button icon
+            // Update mute button icon (always show muted since widget videos are always muted)
             views.setImageViewResource(
                 R.id.muteButton,
-                if (isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_up
+                R.drawable.ic_volume_off
             )
 
-            // Load video thumbnail asynchronously
-            loadVideoThumbnail(context, views, appWidgetId, videoUri, appWidgetManager)
+            // Update video info
+            views.setTextViewText(R.id.videoTitle, videoName)
+            views.setTextViewText(R.id.videoCounter, "$currentPosition/$totalVideos")
+            views.setViewVisibility(R.id.videoInfoOverlay, android.view.View.VISIBLE)
+
+            // Handle video playback
+            if (isPlaying) {
+                // Start frame-based video animation (muted)
+                startMutedVideoPlayback(context, appWidgetId, videoUri)
+                // Show video display, hide thumbnail
+                views.setViewVisibility(R.id.videoThumbnail, android.view.View.GONE)
+                views.setViewVisibility(R.id.videoDisplay, android.view.View.VISIBLE)
+            } else {
+                // Stop video playback and show thumbnail
+                stopVideoPlayback(context, appWidgetId)
+                views.setViewVisibility(R.id.videoDisplay, android.view.View.GONE)
+                views.setViewVisibility(R.id.videoThumbnail, android.view.View.VISIBLE)
+                
+                // Load video thumbnail
+                loadVideoThumbnail(context, views, appWidgetId, videoUri, appWidgetManager)
+            }
 
             // Update the widget
             appWidgetManager.updateAppWidget(appWidgetId, views)
             
-            // Start video update service if playing
+            // Start auto-refresh service for cycling videos
             if (isPlaying) {
                 startVideoUpdateService(context, appWidgetId)
             }
@@ -123,11 +147,12 @@ class VideoWidgetProvider : AppWidgetProvider() {
             
             // Show placeholder
             views.setImageViewResource(R.id.videoThumbnail, R.drawable.widget_preview)
+            views.setViewVisibility(R.id.videoThumbnail, android.view.View.VISIBLE)
+            views.setViewVisibility(R.id.videoDisplay, android.view.View.GONE)
+            views.setViewVisibility(R.id.videoInfoOverlay, android.view.View.GONE)
             
-            // Set up config intent
-            val configIntent = Intent(context, VideoWidgetConfigActivity::class.java).apply {
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-            }
+            // Set up config intent to open main activity for video selection
+            val configIntent = Intent(context, com.videowidgetplayer.ui.MainActivity::class.java)
             val pendingIntent = PendingIntent.getActivity(
                 context, appWidgetId, configIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -153,7 +178,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(R.id.playPauseButton, playPausePendingIntent)
 
-            // Mute button
+            // Mute button (for widget videos, always muted, but can be used for future features)
             val muteIntent = Intent(context, VideoWidgetProvider::class.java).apply {
                 action = ACTION_MUTE_UNMUTE
                 putExtra(EXTRA_APPWIDGET_ID, appWidgetId)
@@ -185,6 +210,23 @@ class VideoWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.previousButton, previousPendingIntent)
+        }
+
+        private fun startMutedVideoPlayback(context: Context, appWidgetId: Int, videoUri: Uri) {
+            val intent = Intent(context, WidgetVideoService::class.java).apply {
+                action = WidgetVideoService.ACTION_PLAY_VIDEO
+                putExtra(WidgetVideoService.EXTRA_APPWIDGET_ID, appWidgetId)
+                putExtra(WidgetVideoService.EXTRA_VIDEO_URI, videoUri.toString())
+            }
+            context.startService(intent)
+        }
+
+        private fun stopVideoPlayback(context: Context, appWidgetId: Int) {
+            val intent = Intent(context, WidgetVideoService::class.java).apply {
+                action = WidgetVideoService.ACTION_STOP_VIDEO
+                putExtra(WidgetVideoService.EXTRA_APPWIDGET_ID, appWidgetId)
+            }
+            context.startService(intent)
         }
 
         private fun loadVideoThumbnail(
@@ -225,7 +267,6 @@ class VideoWidgetProvider : AppWidgetProvider() {
             context.startService(serviceIntent)
         }
     }
-
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -253,6 +294,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
             }
             
             ACTION_MUTE_UNMUTE -> {
+                // For widget videos, always muted, but toggle state for UI consistency
                 val isMuted = widgetPrefs.getMutedState(appWidgetId)
                 widgetPrefs.saveMutedState(appWidgetId, !isMuted)
                 updateAppWidget(context, appWidgetManager, appWidgetId)
@@ -274,11 +316,13 @@ class VideoWidgetProvider : AppWidgetProvider() {
         widgetPrefs: WidgetPreferences,
         appWidgetManager: AppWidgetManager
     ) {
-        val videoUris = widgetPrefs.getVideoUris(appWidgetId)
-        if (videoUris.isEmpty()) return
+        // Get videos from homescreen selection
+        val selectedVideosManager = com.videowidgetplayer.data.SelectedVideosManager(context)
+        val selectedVideos = selectedVideosManager.loadSelectedVideos()
+        if (selectedVideos.isEmpty()) return
 
         val currentIndex = widgetPrefs.getCurrentVideoIndex(appWidgetId)
-        val nextIndex = (currentIndex + 1) % videoUris.size
+        val nextIndex = (currentIndex + 1) % selectedVideos.size
         widgetPrefs.saveCurrentVideoIndex(appWidgetId, nextIndex)
         
         updateAppWidget(context, appWidgetManager, appWidgetId)
@@ -290,11 +334,13 @@ class VideoWidgetProvider : AppWidgetProvider() {
         widgetPrefs: WidgetPreferences,
         appWidgetManager: AppWidgetManager
     ) {
-        val videoUris = widgetPrefs.getVideoUris(appWidgetId)
-        if (videoUris.isEmpty()) return
+        // Get videos from homescreen selection
+        val selectedVideosManager = com.videowidgetplayer.data.SelectedVideosManager(context)
+        val selectedVideos = selectedVideosManager.loadSelectedVideos()
+        if (selectedVideos.isEmpty()) return
 
         val currentIndex = widgetPrefs.getCurrentVideoIndex(appWidgetId)
-        val previousIndex = if (currentIndex > 0) currentIndex - 1 else videoUris.size - 1
+        val previousIndex = if (currentIndex > 0) currentIndex - 1 else selectedVideos.size - 1
         widgetPrefs.saveCurrentVideoIndex(appWidgetId, previousIndex)
         
         updateAppWidget(context, appWidgetManager, appWidgetId)
@@ -303,6 +349,9 @@ class VideoWidgetProvider : AppWidgetProvider() {
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         val widgetPrefs = WidgetPreferences(context)
         for (appWidgetId in appWidgetIds) {
+            // Stop video playback for deleted widgets
+            stopVideoPlayback(context, appWidgetId)
+            // Clear widget preferences
             widgetPrefs.deleteWidgetPrefs(appWidgetId)
         }
     }
