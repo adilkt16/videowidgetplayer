@@ -14,11 +14,13 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.ui.PlayerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.videowidgetplayer.R
 import com.videowidgetplayer.adapters.ConfigVideoAdapter
 import com.videowidgetplayer.databinding.ActivityVideoWidgetConfigureBinding
 import com.videowidgetplayer.ui.MainActivity
+import com.videowidgetplayer.utils.MediaUtils
 import com.videowidgetplayer.utils.PreferenceUtils
 
 class VideoWidgetConfigureActivity : AppCompatActivity() {
@@ -32,6 +34,7 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
     private val selectedVideoUris = mutableListOf<String>()
     private lateinit var configVideoAdapter: ConfigVideoAdapter
     private var exoPlayer: ExoPlayer? = null
+    private lateinit var playerView: PlayerView
     
     // Register for multiple video selection
     private val videoSelectionLauncher = registerForActivityResult(
@@ -90,6 +93,9 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
         
         // Initialize RecyclerView and adapter
         setupSelectedVideosRecyclerView()
+        
+        // Initialize video player
+        setupVideoPlayer()
 
         // Set up gesture settings if available in layout
         setupGestureSettings()
@@ -114,13 +120,29 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
         }
     }
     
+    private fun setupVideoPlayer() {
+        playerView = binding.configPlayerView
+        
+        // Setup close button
+        binding.closePlayerButton.setOnClickListener {
+            hideVideoPlayer()
+        }
+    }
+    
     private fun playVideo(videoUri: String) {
         try {
+            // Get video info for display
+            val videoInfo = MediaUtils.getVideoInfo(this, Uri.parse(videoUri))
+            binding.currentVideoTitle.text = videoInfo.displayName ?: "Video Preview"
+            
             // Release previous player if exists
             exoPlayer?.release()
             
             // Create new player
             exoPlayer = ExoPlayer.Builder(this).build()
+            
+            // Attach player to view
+            playerView.player = exoPlayer
             
             // Create media item
             val mediaItem = MediaItem.fromUri(Uri.parse(videoUri))
@@ -130,7 +152,7 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
             exoPlayer?.prepare()
             exoPlayer?.playWhenReady = true
             
-            // Add listener for completion
+            // Add listener for completion and errors
             exoPlayer?.addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     if (playbackState == Player.STATE_ENDED) {
@@ -138,14 +160,34 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
                         exoPlayer?.pause()
                     }
                 }
+                
+                override fun onPlayerError(error: com.google.android.exoplayer2.PlaybackException) {
+                    Log.e(TAG, "Error playing video preview", error)
+                    Toast.makeText(this@VideoWidgetConfigureActivity, "Error playing video", Toast.LENGTH_SHORT).show()
+                    hideVideoPlayer()
+                }
             })
             
-            Toast.makeText(this, "Playing video preview", Toast.LENGTH_SHORT).show()
+            // Show video player
+            showVideoPlayer()
             
         } catch (e: Exception) {
-            Log.e(TAG, "Error playing video preview", e)
+            Log.e(TAG, "Error setting up video preview", e)
             Toast.makeText(this, "Error playing video", Toast.LENGTH_SHORT).show()
         }
+    }
+    
+    private fun showVideoPlayer() {
+        binding.videoPlayerContainer.visibility = android.view.View.VISIBLE
+        // Optionally scroll to show the player
+        binding.selectedVideosRecyclerView.post {
+            // You could add smooth scrolling here if needed
+        }
+    }
+    
+    private fun hideVideoPlayer() {
+        binding.videoPlayerContainer.visibility = android.view.View.GONE
+        exoPlayer?.pause()
     }
     
     private fun removeVideoFromSelection(videoUri: String) {
@@ -428,8 +470,19 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
         }
     }
     
+    override fun onPause() {
+        super.onPause()
+        exoPlayer?.pause()
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Player will resume automatically if it was playing
+    }
+    
     override fun onDestroy() {
         super.onDestroy()
+        playerView.player = null
         exoPlayer?.release()
         exoPlayer = null
     }

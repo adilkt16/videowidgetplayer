@@ -48,10 +48,56 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/selectedVideosRecyclerView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="200dp"
         android:layout_marginBottom="16dp"
         android:visibility="gone" />
+        
+    <!-- Video Player Section -->
+    <FrameLayout
+        android:id="@+id/videoPlayerContainer"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/video_thumbnail_background"
+        android:visibility="gone">
+        
+        <com.google.android.exoplayer2.ui.PlayerView
+            android:id="@+id/configPlayerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/black" />
+            
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="@drawable/gradient_overlay"
+            android:orientation="horizontal"
+            android:padding="8dp">
+            
+            <TextView
+                android:id="@+id/currentVideoTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Video Preview"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+                
+            <ImageView
+                android:id="@+id/closePlayerButton"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:src="@drawable/ic_close"
+                android:contentDescription="Close player"
+                android:tint="@color/white" />
+                
+        </LinearLayout>
+        
+    </FrameLayout>
         
     <!-- Gesture Settings Section -->
     <TextView
