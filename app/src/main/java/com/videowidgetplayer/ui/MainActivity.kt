@@ -170,6 +170,17 @@ class MainActivity : AppCompatActivity() {
                 val duplicateVideos = mutableListOf<String>()
                 
                 for (uri in uris) {
+                    // Request persistent permission for this URI
+                    try {
+                        contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                        android.util.Log.d("MainActivity", "Granted persistent permission for: $uri")
+                    } catch (e: Exception) {
+                        android.util.Log.w("MainActivity", "Could not take persistent permission for: $uri", e)
+                    }
+                    
                     val video = videoRepository.getVideoByUri(uri)
                     if (video != null && video.isValidForWidget()) {
                         // Check if video is already selected
@@ -252,17 +263,45 @@ class MainActivity : AppCompatActivity() {
             }
             .create()
         
+        // First, validate that we can access the URI
+        try {
+            val cursor = contentResolver.query(
+                video.uri,
+                arrayOf(android.provider.MediaStore.Video.Media._ID),
+                null,
+                null,
+                null
+            )
+            val isAccessible = cursor?.use { it.count > 0 } ?: false
+            cursor?.close()
+            
+            if (!isAccessible) {
+                android.util.Log.e("MainActivity", "URI not accessible: ${video.uri}")
+                Toast.makeText(this, "Video file is no longer accessible. Please re-select this video.", Toast.LENGTH_LONG).show()
+                
+                // Remove the inaccessible video from the list
+                removeVideo(video)
+                return
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error checking URI accessibility: ${video.uri}", e)
+            Toast.makeText(this, "Cannot access video file: ${e.message}", Toast.LENGTH_LONG).show()
+            return
+        }
+        
         // Setup ExoPlayer for the dialog
         val exoPlayer = com.google.android.exoplayer2.ExoPlayer.Builder(this).build()
         playerView.player = exoPlayer
         
         try {
+            android.util.Log.d("MainActivity", "Attempting to play video: ${video.uri}")
             val mediaItem = com.google.android.exoplayer2.MediaItem.fromUri(video.uri)
             exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
             exoPlayer.playWhenReady = true
         } catch (e: Exception) {
-            android.widget.Toast.makeText(this, "Cannot play video: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+            android.util.Log.e("MainActivity", "Error playing video: ${video.uri}", e)
+            android.widget.Toast.makeText(this, "Cannot play video: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
             dialog.dismiss()
             return
         }

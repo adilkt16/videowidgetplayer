@@ -55,11 +55,27 @@ class SelectedVideosManager(private val context: Context) {
             // Validate and filter out any corrupted entries
             val validVideos = videos.filter { video ->
                 try {
-                    // Test if the URI is valid
+                    // Test if the URI is valid and accessible
                     video.uri.toString()
                     video.name.isNotEmpty()
                     video.id > 0
-                    true
+                    
+                    // Test if we can actually access the content
+                    val cursor = context.contentResolver.query(
+                        video.uri,
+                        arrayOf(android.provider.MediaStore.Video.Media._ID),
+                        null,
+                        null,
+                        null
+                    )
+                    val isAccessible = cursor?.use { it.count > 0 } ?: false
+                    
+                    if (!isAccessible) {
+                        Log.w(TAG, "URI no longer accessible: ${video.uri}")
+                        false
+                    } else {
+                        true
+                    }
                 } catch (e: Exception) {
                     Log.w(TAG, "Removing corrupted video entry: ${video.name}", e)
                     false
