@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <com.google.android.exoplayer2.ui.PlayerView
+        android:id="@+id/dialogPlayerView"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:background="@android:color/black" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tap anywhere on the video to play/pause"
+        android:textSize="12sp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:gravity="center"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>

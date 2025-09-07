@@ -31,6 +31,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Full-screen Video Player -->
+        <activity
+            android:name=".ui.VideoPlayerActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:screenOrientation="sensor" />
+
         <!-- Video Widget Provider -->
         <receiver
             android:name=".widget.VideoWidgetProvider"

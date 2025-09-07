@@ -39,13 +39,20 @@ class VideoWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int
         ) {
             val widgetPrefs = WidgetPreferences(context)
-            val videoUris = widgetPrefs.getVideoUris(appWidgetId)
             
-            if (videoUris.isEmpty()) {
+            // Check if widget is configured by looking at selected videos
+            val selectedVideosManager = com.videowidgetplayer.data.SelectedVideosManager(context)
+            val selectedVideos = selectedVideosManager.loadSelectedVideos()
+            
+            if (selectedVideos.isEmpty()) {
                 updateUnconfiguredWidget(context, appWidgetManager, appWidgetId)
                 return
             }
 
+            // Use selected videos for widget
+            val videoUris = selectedVideos.map { it.uri }
+            widgetPrefs.saveVideoUris(appWidgetId, videoUris)
+            
             val currentIndex = widgetPrefs.getCurrentVideoIndex(appWidgetId)
             val isPlaying = widgetPrefs.getPlayingState(appWidgetId)
             val isMuted = widgetPrefs.getMutedState(appWidgetId)

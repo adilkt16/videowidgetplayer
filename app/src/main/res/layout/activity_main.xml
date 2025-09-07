@@ -24,7 +24,7 @@
         android:id="@+id/descriptionText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Select videos to display in your home screen widget.\nVideos must be 60 seconds or less."
+        android:text="Select videos for your home screen widget.\nVideos must be 60 seconds or less."
         android:textSize="16sp"
         android:gravity="center"
         android:layout_marginTop="16dp"
@@ -32,24 +32,39 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/videoRecyclerView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="16dp"
-        app:layout_constraintTop_toBottomOf="@id/descriptionText"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/addWidgetButton" />
-
     <Button
-        android:id="@+id/addWidgetButton"
+        android:id="@+id/addVideoButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/add_widget"
+        android:text="Add video to widget"
         android:textSize="16sp"
+        android:layout_marginTop="24dp"
+        android:layout_marginHorizontal="32dp"
+        app:layout_constraintTop_toBottomOf="@id/descriptionText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/selectedVideosRecyclerView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="16dp"
         android:layout_marginBottom="16dp"
+        app:layout_constraintTop_toBottomOf="@id/addVideoButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/launchWidgetButton" />
+
+    <Button
+        android:id="@+id/launchWidgetButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Launch the Widget"
+        android:textSize="16sp"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -58,11 +73,12 @@
         android:id="@+id/emptyText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/no_videos_found"
+        android:text="No videos selected.\nTap 'Add video to widget' to get started."
         android:textSize="16sp"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="@id/videoRecyclerView"
-        app:layout_constraintBottom_toBottomOf="@id/videoRecyclerView"
+        android:gravity="center"
+        android:textColor="?android:attr/textColorSecondary"
+        app:layout_constraintTop_toTopOf="@id/selectedVideosRecyclerView"
+        app:layout_constraintBottom_toBottomOf="@id/selectedVideosRecyclerView"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
