@@ -245,11 +245,6 @@ class VideoWidgetProvider : AppWidgetProvider() {
             } else "0:00"
             views.setTextViewText(R.id.video_duration, duration)
             
-            // Update progress bar (placeholder values)
-            views.setProgressBar(R.id.progress_bar, 100, 0, false)
-            views.setTextViewText(R.id.current_time, "00:00")
-            views.setTextViewText(R.id.total_time, duration)
-            
             // Update video title in overlay
             if (videoUri != null) {
                 val videoTitle = getVideoTitle(context, videoUri)
