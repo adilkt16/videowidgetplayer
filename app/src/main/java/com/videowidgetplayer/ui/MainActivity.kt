@@ -65,6 +65,13 @@ class MainActivity : AppCompatActivity() {
         loadSelectedVideos()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Reload videos when app comes back to foreground
+        // This ensures we have the latest state even after force close
+        loadSelectedVideos()
+    }
+
     private fun setupViews() {
         videoRepository = VideoRepository(this)
         selectedVideosManager = SelectedVideosManager(this)
@@ -95,9 +102,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadSelectedVideos() {
-        selectedVideos.clear()
-        selectedVideos.addAll(selectedVideosManager.loadSelectedVideos())
-        updateUI()
+        try {
+            selectedVideos.clear()
+            val loadedVideos = selectedVideosManager.loadSelectedVideos()
+            selectedVideos.addAll(loadedVideos)
+            updateUI()
+            
+            if (loadedVideos.isNotEmpty()) {
+                android.util.Log.d("MainActivity", "Successfully loaded ${loadedVideos.size} videos from storage")
+                // Show a subtle confirmation to user
+                Toast.makeText(this, "Loaded ${loadedVideos.size} saved videos", Toast.LENGTH_SHORT).show()
+            } else {
+                android.util.Log.d("MainActivity", "No previously selected videos found")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error loading selected videos", e)
+            Toast.makeText(this, "Error loading saved videos", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun updateUI() {

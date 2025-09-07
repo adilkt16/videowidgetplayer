@@ -1,6 +1,7 @@
 package com.videowidgetplayer.data
 
 import android.net.Uri
+import com.google.gson.annotations.SerializedName
 
 /**
  * Data class representing a video file with widget-specific information
@@ -9,12 +10,40 @@ import android.net.Uri
 data class VideoFile(
     val id: Long,
     val name: String,
-    val uri: Uri,
+    @SerializedName("uriString")
+    private val _uriString: String,
     val duration: Long, // in milliseconds
     val size: Long,
-    val thumbnailUri: Uri? = null,
+    @SerializedName("thumbnailUriString")
+    private val _thumbnailUriString: String? = null,
     val isSelected: Boolean = false
 ) {
+    
+    // Computed properties that convert strings back to Uri objects
+    val uri: Uri
+        get() = Uri.parse(_uriString)
+    
+    val thumbnailUri: Uri?
+        get() = _thumbnailUriString?.let { Uri.parse(it) }
+    
+    // Secondary constructor for creating from Uri objects
+    constructor(
+        id: Long,
+        name: String,
+        uri: Uri,
+        duration: Long,
+        size: Long,
+        thumbnailUri: Uri? = null,
+        isSelected: Boolean = false
+    ) : this(
+        id = id,
+        name = name,
+        _uriString = uri.toString(),
+        duration = duration,
+        size = size,
+        _thumbnailUriString = thumbnailUri?.toString(),
+        isSelected = isSelected
+    )
     /**
      * Check if video meets widget requirements (≤60 seconds)
      */
