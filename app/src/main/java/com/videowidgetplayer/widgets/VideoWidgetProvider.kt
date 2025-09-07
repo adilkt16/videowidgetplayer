@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -46,32 +47,81 @@ class VideoWidgetProvider : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
+            Log.d(TAG, "=== WIDGET UPDATE DEBUG START ===")
             Log.d(TAG, "Updating widget: $appWidgetId")
             
             try {
                 // Get widget options to determine size
                 val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
                 val widgetLayout = getWidgetLayout(options)
+                Log.d(TAG, "Widget layout selected: $widgetLayout")
                 
                 // Create RemoteViews object with appropriate layout
                 val views = RemoteViews(context.packageName, widgetLayout)
+                Log.d(TAG, "Created RemoteViews for package: ${context.packageName}")
                 
                 // Load widget preferences
-                val videoUri = PreferenceUtils.getWidgetVideoUri(context, appWidgetId)
+                val videoQueue = PreferenceUtils.getWidgetVideoQueue(context, appWidgetId)
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, appWidgetId)
+                Log.d(TAG, "Video queue size: ${videoQueue.size}, current index: $currentIndex")
+                
+                val videoUri = if (videoQueue.isNotEmpty() && currentIndex < videoQueue.size) {
+                    videoQueue[currentIndex]
+                } else {
+                    // Fallback to app-selected videos if no widget-specific videos found
+                    val appVideos = PreferenceUtils.getAppSelectedVideos(context)
+                    if (appVideos.isNotEmpty()) {
+                        Log.d(TAG, "Using app-selected videos as fallback")
+                        // Set up the widget with app-selected videos
+                        PreferenceUtils.setWidgetVideoQueue(context, appWidgetId, appVideos)
+                        PreferenceUtils.setWidgetCurrentVideoIndex(context, appWidgetId, 0)
+                        appVideos[0]
+                    } else {
+                        null
+                    }
+                }
+                
+                Log.d(TAG, "Selected video URI: $videoUri")
+                
                 val isPlaying = PreferenceUtils.getWidgetPlayState(context, appWidgetId)
+                Log.d(TAG, "Is playing: $isPlaying")
+                
+                // Also save the current video URI for backward compatibility
+                if (videoUri != null) {
+                    PreferenceUtils.saveWidgetVideoUri(context, appWidgetId, videoUri)
+                    Log.d(TAG, "Saved video URI for backward compatibility")
+                } else {
+                    Log.w(TAG, "NO VIDEO URI FOUND - this may cause 'Can't load widget'")
+                }
                 
                 // Update widget content
+                Log.d(TAG, "Updating widget content...")
                 updateWidgetContent(context, views, appWidgetId, videoUri, isPlaying, widgetLayout)
                 
                 // Set up click listeners
+                Log.d(TAG, "Setting up click listeners...")
                 setupClickListeners(context, views, appWidgetId, widgetLayout)
                 
                 // Update the widget
+                Log.d(TAG, "Applying widget update...")
                 appWidgetManager.updateAppWidget(appWidgetId, views)
+                Log.d(TAG, "Widget update completed successfully")
                 
             } catch (e: Exception) {
-                Log.e(TAG, "Error updating widget $appWidgetId", e)
+                Log.e(TAG, "CRITICAL ERROR updating widget $appWidgetId", e)
+                
+                // Create emergency fallback widget
+                try {
+                    val fallbackViews = RemoteViews(context.packageName, R.layout.video_widget)
+                    fallbackViews.setTextViewText(R.id.widget_title, "Widget Error - Check Logs")
+                    fallbackViews.setImageViewResource(R.id.video_thumbnail, R.drawable.ic_video_placeholder)
+                    appWidgetManager.updateAppWidget(appWidgetId, fallbackViews)
+                    Log.d(TAG, "Applied emergency fallback widget")
+                } catch (fe: Exception) {
+                    Log.e(TAG, "Even fallback widget failed!", fe)
+                }
             }
+            Log.d(TAG, "=== WIDGET UPDATE DEBUG END ===")
         }
         
         /**
@@ -101,13 +151,25 @@ class VideoWidgetProvider : AppWidgetProvider() {
             isPlaying: Boolean,
             layoutId: Int
         ) {
+            Log.d(TAG, "=== CONTENT UPDATE DEBUG ===")
+            
             // Update title
             val title = if (videoUri != null) {
-                getVideoTitle(context, videoUri)
+                val videoTitle = getVideoTitle(context, videoUri)
+                Log.d(TAG, "Video title extracted: $videoTitle")
+                videoTitle
             } else {
-                context.getString(R.string.video_widget_name)
+                val defaultTitle = context.getString(R.string.video_widget_name)
+                Log.d(TAG, "Using default title: $defaultTitle")
+                defaultTitle
             }
-            views.setTextViewText(R.id.widget_title, title)
+            
+            try {
+                views.setTextViewText(R.id.widget_title, title)
+                Log.d(TAG, "Set widget title successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting widget title", e)
+            }
             
             // Update play/pause button
             val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
@@ -117,18 +179,36 @@ class VideoWidgetProvider : AppWidgetProvider() {
                 context.getString(R.string.play)
             }
             
-            views.setImageViewResource(R.id.play_pause_button, playPauseIcon)
-            views.setContentDescription(R.id.play_pause_button, playPauseDesc)
+            try {
+                views.setImageViewResource(R.id.play_pause_button, playPauseIcon)
+                views.setContentDescription(R.id.play_pause_button, playPauseDesc)
+                Log.d(TAG, "Set play/pause button successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting play/pause button", e)
+            }
             
             // Update mute button
-            updateMuteButton(context, views, appWidgetId, layoutId)
+            try {
+                updateMuteButton(context, views, appWidgetId, layoutId)
+                Log.d(TAG, "Updated mute button successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error updating mute button", e)
+            }
             
             // Update video thumbnail
             if (videoUri != null) {
-                loadVideoThumbnail(context, views, videoUri)
-                views.setViewVisibility(R.id.play_overlay, 
-                    if (isPlaying) android.view.View.GONE else android.view.View.VISIBLE)
+                Log.d(TAG, "Loading video thumbnail for URI: $videoUri")
+                try {
+                    Log.d(TAG, "Loading video thumbnail for URI: $videoUri")
+                    loadVideoThumbnail(context, views, videoUri)
+                    views.setViewVisibility(R.id.play_overlay, 
+                        if (isPlaying) android.view.View.GONE else android.view.View.VISIBLE)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error loading video thumbnail, using placeholder", e)
+                    views.setImageViewResource(R.id.video_thumbnail, R.drawable.ic_video_placeholder)
+                }
             } else {
+                Log.d(TAG, "No video URI, using placeholder")
                 views.setImageViewResource(R.id.video_thumbnail, R.drawable.ic_video_placeholder)
                 views.setViewVisibility(R.id.play_overlay, android.view.View.VISIBLE)
             }
@@ -136,12 +216,18 @@ class VideoWidgetProvider : AppWidgetProvider() {
             // Update layout-specific elements
             when (layoutId) {
                 R.layout.video_widget_large -> {
+                    Log.d(TAG, "Updating large widget content")
                     updateLargeWidgetContent(context, views, appWidgetId, videoUri)
                 }
                 R.layout.video_widget_compact -> {
+                    Log.d(TAG, "Updating compact widget content")
                     updateCompactWidgetContent(context, views, appWidgetId)
                 }
+                else -> {
+                    Log.d(TAG, "Using standard widget layout")
+                }
             }
+            Log.d(TAG, "=== CONTENT UPDATE COMPLETE ===")
         }
         
         /**
@@ -305,15 +391,52 @@ class VideoWidgetProvider : AppWidgetProvider() {
         }
         
         /**
-         * Load video thumbnail (placeholder implementation)
+         * Load video thumbnail using MediaMetadataRetriever
          */
         private fun loadVideoThumbnail(context: Context, views: RemoteViews, videoUri: String) {
             try {
-                // This is a placeholder - in a real implementation, you would:
-                // 1. Use MediaMetadataRetriever to extract thumbnail
-                // 2. Load thumbnail asynchronously
-                // 3. Cache thumbnails for performance
-                views.setImageViewResource(R.id.video_thumbnail, R.drawable.ic_video_placeholder)
+                Log.d(TAG, "Loading thumbnail for URI: $videoUri")
+                val retriever = MediaMetadataRetriever()
+                var thumbnail: Bitmap? = null
+                
+                try {
+                    retriever.setDataSource(context, Uri.parse(videoUri))
+                    
+                    // Try to get frame at 1 second, if that fails get first frame
+                    thumbnail = try {
+                        retriever.getFrameAtTime(1000000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                    } catch (e: Exception) {
+                        Log.d(TAG, "Couldn't get frame at 1s, trying first frame")
+                        retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                    }
+                    
+                    if (thumbnail != null) {
+                        // Scale down the thumbnail to reasonable size for widget
+                        val scaledThumbnail = Bitmap.createScaledBitmap(
+                            thumbnail, 
+                            minOf(thumbnail.width, 300), 
+                            minOf(thumbnail.height, 200), 
+                            true
+                        )
+                        
+                        views.setImageViewBitmap(R.id.video_thumbnail, scaledThumbnail)
+                        Log.d(TAG, "Successfully loaded video thumbnail (${scaledThumbnail.width}x${scaledThumbnail.height})")
+                        
+                        // Don't recycle original if it's different from scaled
+                        if (scaledThumbnail != thumbnail) {
+                            thumbnail.recycle()
+                        }
+                    } else {
+                        Log.w(TAG, "Retrieved thumbnail is null, using placeholder")
+                        views.setImageViewResource(R.id.video_thumbnail, R.drawable.ic_video_placeholder)
+                    }
+                } finally {
+                    try {
+                        retriever.release()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error releasing MediaMetadataRetriever", e)
+                    }
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading thumbnail for $videoUri", e)
                 views.setImageViewResource(R.id.video_thumbnail, R.drawable.ic_video_placeholder)

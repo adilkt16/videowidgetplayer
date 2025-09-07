@@ -21,6 +21,10 @@ object PreferenceUtils {
     private const val KEY_WIDGET_SHUFFLE_ENABLED = "widget_shuffle_enabled_"
     private const val KEY_WIDGET_LOOP_MODE = "widget_loop_mode_"
     
+    // App-level video selection keys
+    private const val KEY_APP_SELECTED_VIDEOS = "app_selected_videos"
+    private const val KEY_APP_VIDEOS_COUNT = "app_videos_count"
+    
     private fun getSharedPreferences(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -233,6 +237,53 @@ object PreferenceUtils {
     
     fun getWidgetLoopMode(context: Context, widgetId: Int): Int {
         return getSharedPreferences(context).getInt(KEY_WIDGET_LOOP_MODE + widgetId, 0) // Default: NONE
+    }
+    
+    // App-level video selection methods
+    fun saveAppSelectedVideos(context: Context, videoUris: List<String>) {
+        val prefs = getSharedPreferences(context).edit()
+        prefs.putInt(KEY_APP_VIDEOS_COUNT, videoUris.size)
+        
+        // Save each video URI with an index
+        videoUris.forEachIndexed { index, uri ->
+            prefs.putString("$KEY_APP_SELECTED_VIDEOS$index", uri)
+        }
+        
+        prefs.apply()
+    }
+    
+    fun getAppSelectedVideos(context: Context): List<String> {
+        val prefs = getSharedPreferences(context)
+        val count = prefs.getInt(KEY_APP_VIDEOS_COUNT, 0)
+        
+        val videoList = mutableListOf<String>()
+        for (i in 0 until count) {
+            val uri = prefs.getString("$KEY_APP_SELECTED_VIDEOS$i", null)
+            if (uri != null) {
+                videoList.add(uri)
+            }
+        }
+        
+        return videoList
+    }
+    
+    fun clearAppSelectedVideos(context: Context) {
+        val prefs = getSharedPreferences(context)
+        val count = prefs.getInt(KEY_APP_VIDEOS_COUNT, 0)
+        
+        val editor = prefs.edit()
+        editor.remove(KEY_APP_VIDEOS_COUNT)
+        
+        // Remove all saved video URIs
+        for (i in 0 until count) {
+            editor.remove("$KEY_APP_SELECTED_VIDEOS$i")
+        }
+        
+        editor.apply()
+    }
+    
+    fun getAppSelectedVideosCount(context: Context): Int {
+        return getSharedPreferences(context).getInt(KEY_APP_VIDEOS_COUNT, 0)
     }
     
     fun clearAllPreferences(context: Context) {

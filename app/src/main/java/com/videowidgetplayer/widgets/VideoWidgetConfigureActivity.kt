@@ -9,10 +9,12 @@ import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.videowidgetplayer.R
 import com.videowidgetplayer.databinding.ActivityVideoWidgetConfigureBinding
+import com.videowidgetplayer.ui.MainActivity
 import com.videowidgetplayer.utils.PreferenceUtils
 
 class VideoWidgetConfigureActivity : AppCompatActivity() {
@@ -58,12 +60,13 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
         }
         
         setupUI()
+        loadAppSelectedVideos()
     }
     
     private fun setupUI() {
         binding.addButton.setOnClickListener {
             if (selectedVideoUris.isEmpty()) {
-                Toast.makeText(this, "Please select at least one video", Toast.LENGTH_SHORT).show()
+                showMainAppRedirectDialog()
                 return@setOnClickListener
             }
             
@@ -71,7 +74,7 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
         }
         
         binding.selectVideoButton.setOnClickListener {
-            selectVideosForWidget()
+            showMainAppRedirectDialog()
         }
         
         // Set up gesture settings if available in layout
@@ -111,6 +114,47 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
         }
     }
     
+    private fun loadAppSelectedVideos() {
+        Log.d(TAG, "Loading videos selected in main app...")
+        selectedVideoUris.clear()
+        selectedVideoUris.addAll(PreferenceUtils.getAppSelectedVideos(this))
+        
+        Log.d(TAG, "Loaded ${selectedVideoUris.size} videos from app selection")
+        selectedVideoUris.forEachIndexed { index, uri ->
+            Log.d(TAG, "App video $index: $uri")
+        }
+        
+        updateVideoSelectionDisplay()
+    }
+    
+    private fun showMainAppRedirectDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Select Videos in Main App")
+            .setMessage("Please select videos in the main Video Widget Player app first.\n\nWould you like to open the main app now?")
+            .setPositiveButton("Open Main App") { dialog, _ ->
+                dialog.dismiss()
+                openMainApp()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+                finish()
+            }
+            .show()
+    }
+    
+    private fun openMainApp() {
+        try {
+            val intent = Intent(this, MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            startActivity(intent)
+            finish()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error opening main app", e)
+            Toast.makeText(this, "Could not open main app", Toast.LENGTH_SHORT).show()
+            finish()
+        }
+    }
+    
     private fun selectVideosForWidget() {
         Log.d(TAG, "Opening video selection")
         
@@ -124,6 +168,7 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
     }
     
     private fun handleVideoSelection(uris: List<Uri>) {
+        Log.d(TAG, "=== VIDEO SELECTION DEBUG ===")
         Log.d(TAG, "Selected ${uris.size} videos")
         
         selectedVideoUris.clear()
@@ -140,6 +185,11 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing video URI: $uri", e)
             }
+        }
+        
+        Log.d(TAG, "Total videos selected: ${selectedVideoUris.size}")
+        selectedVideoUris.forEachIndexed { index, uri ->
+            Log.d(TAG, "Video $index: $uri")
         }
         
         updateVideoSelectionDisplay()
@@ -163,36 +213,79 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
     }
     
     private fun configureWidget() {
+        Log.d(TAG, "=== WIDGET CONFIGURATION START ===")
         Log.d(TAG, "Configuring widget $appWidgetId with ${selectedVideoUris.size} videos")
+        
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            Log.e(TAG, "INVALID WIDGET ID")
+            return
+        }
+        
+        // Reload app-selected videos to ensure we have the latest
+        loadAppSelectedVideos()
+        
+        if (selectedVideoUris.isEmpty()) {
+            Log.e(TAG, "NO VIDEOS SELECTED IN APP")
+            Toast.makeText(this, "No videos selected in main app. Please select videos first.", Toast.LENGTH_LONG).show()
+            showMainAppRedirectDialog()
+            return
+        }
         
         try {
             val context = this@VideoWidgetConfigureActivity
             
             // Initialize the video queue for the widget
+            Log.d(TAG, "Initializing video manager...")
             val videoManager = WidgetVideoManager.getInstance()
             videoManager.initialize(context, appWidgetId)
             videoManager.initializeVideoQueue(context, appWidgetId)
             
             // Save the selected video queue
+            Log.d(TAG, "Saving video queue...")
             PreferenceUtils.setWidgetVideoQueue(context, appWidgetId, selectedVideoUris)
             
+            // Verify queue was saved
+            val savedQueue = PreferenceUtils.getWidgetVideoQueue(context, appWidgetId)
+            Log.d(TAG, "VERIFICATION: Saved queue size = ${savedQueue.size}")
+            
+            // Set the first video as current and save for backward compatibility
+            if (selectedVideoUris.isNotEmpty()) {
+                Log.d(TAG, "Setting first video as current...")
+                PreferenceUtils.setWidgetCurrentVideoIndex(context, appWidgetId, 0)
+                PreferenceUtils.saveWidgetVideoUri(context, appWidgetId, selectedVideoUris[0])
+                
+                // Extract and save video title
+                val videoTitle = getVideoTitle(context, selectedVideoUris[0])
+                PreferenceUtils.saveWidgetTitle(context, appWidgetId, videoTitle)
+                
+                Log.d(TAG, "FIRST VIDEO: ${selectedVideoUris[0]}")
+                Log.d(TAG, "VIDEO TITLE: $videoTitle")
+                Log.d(TAG, "Configured widget $appWidgetId with ${selectedVideoUris.size} videos")
+            } else {
+                Log.w(TAG, "No videos selected for widget $appWidgetId")
+            }
+            
             // Apply gesture settings
+            Log.d(TAG, "Applying gesture settings...")
             applyGestureSettings(context, videoManager)
             
             // Configure the widget
+            Log.d(TAG, "Calling VideoWidgetProvider.updateAppWidget...")
             val appWidgetManager = AppWidgetManager.getInstance(context)
             VideoWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId)
             
             // Return success result
+            Log.d(TAG, "Widget configuration COMPLETED SUCCESSFULLY")
             val resultValue = Intent()
             resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
             setResult(RESULT_OK, resultValue)
             finish()
             
         } catch (e: Exception) {
-            Log.e(TAG, "Error configuring widget", e)
+            Log.e(TAG, "CRITICAL ERROR in configureWidget", e)
             Toast.makeText(this, "Error configuring widget", Toast.LENGTH_SHORT).show()
         }
+        Log.d(TAG, "=== WIDGET CONFIGURATION END ===")
     }
     
     private fun applyGestureSettings(context: Context, videoManager: WidgetVideoManager) {
@@ -216,6 +309,36 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
             Log.w(TAG, "Could not apply gesture settings, using defaults", e)
             // Enable gestures by default if settings are not available
             videoManager.enableGestureSupport(context, appWidgetId)
+        }
+    }
+    
+    private fun getVideoTitle(context: Context, videoUri: String): String {
+        return try {
+            val uri = Uri.parse(videoUri)
+            val cursor = context.contentResolver.query(
+                uri,
+                arrayOf(MediaStore.Video.Media.DISPLAY_NAME, MediaStore.Video.Media.TITLE),
+                null,
+                null,
+                null
+            )
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val displayNameIndex = it.getColumnIndex(MediaStore.Video.Media.DISPLAY_NAME)
+                    val titleIndex = it.getColumnIndex(MediaStore.Video.Media.TITLE)
+                    
+                    when {
+                        displayNameIndex >= 0 -> it.getString(displayNameIndex) ?: "Unknown Video"
+                        titleIndex >= 0 -> it.getString(titleIndex) ?: "Unknown Video"
+                        else -> "Unknown Video"
+                    }
+                } else {
+                    "Unknown Video"
+                }
+            } ?: "Unknown Video"
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting video title", e)
+            "Unknown Video"
         }
     }
 }

@@ -38,7 +38,7 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_settings"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:background="@android:color/transparent"
                 android:contentDescription="Settings"
                 android:scaleType="centerInside" />
 
@@ -111,16 +111,16 @@
             android:background="@color/widget_control_background"
             android:padding="8dp">
 
-            <!-- Progress bar -->
-            <SeekBar
+            <!-- Progress bar (using ProgressBar instead of SeekBar for widget compatibility) -->
+            <ProgressBar
                 android:id="@+id/progress_bar"
+                style="@android:style/Widget.ProgressBar.Horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="4dp"
                 android:max="100"
                 android:progress="0"
-                android:secondaryProgress="0"
-                android:thumbOffset="0dp" />
+                android:secondaryProgress="0" />
 
             <!-- Control buttons -->
             <LinearLayout
@@ -136,7 +136,7 @@
                     android:layout_height="32dp"
                     android:layout_marginEnd="6dp"
                     android:src="@drawable/ic_skip_previous"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:background="@android:color/transparent"
                     android:contentDescription="Previous"
                     android:scaleType="centerInside" />
 
@@ -146,7 +146,7 @@
                     android:layout_height="30dp"
                     android:layout_marginEnd="6dp"
                     android:src="@drawable/ic_rewind"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:background="@android:color/transparent"
                     android:contentDescription="Rewind 10s"
                     android:scaleType="centerInside" />
 
@@ -167,7 +167,7 @@
                     android:layout_height="30dp"
                     android:layout_marginStart="6dp"
                     android:src="@drawable/ic_fast_forward"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:background="@android:color/transparent"
                     android:contentDescription="Forward 10s"
                     android:scaleType="centerInside" />
 
@@ -178,7 +178,7 @@
                     android:layout_marginStart="6dp"
                     android:layout_marginEnd="6dp"
                     android:src="@drawable/ic_skip_next"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:background="@android:color/transparent"
                     android:contentDescription="Next"
                     android:scaleType="centerInside" />
 
@@ -188,7 +188,7 @@
                     android:layout_height="28dp"
                     android:layout_marginStart="6dp"
                     android:src="@drawable/ic_volume_up"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:background="@android:color/transparent"
                     android:contentDescription="@string/mute"
                     android:scaleType="centerInside" />
 
@@ -198,7 +198,7 @@
                     android:layout_height="28dp"
                     android:layout_marginStart="6dp"
                     android:src="@drawable/ic_repeat"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:background="@android:color/transparent"
                     android:contentDescription="@string/loop_button"
                     android:scaleType="centerInside" />
 
@@ -221,10 +221,11 @@
                     android:textSize="10sp"
                     android:layout_marginEnd="8dp" />
 
-                <View
+                <TextView
                     android:layout_width="0dp"
                     android:layout_height="1dp"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:visibility="invisible" />
 
             </LinearLayout>
 
@@ -244,10 +245,11 @@
                     android:textColor="@color/widget_text_color"
                     android:textSize="10sp" />
 
-                <View
+                <TextView
                     android:layout_width="0dp"
                     android:layout_height="1dp"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:visibility="invisible" />
 
                 <TextView
                     android:id="@+id/total_time"
@@ -264,12 +266,11 @@
     </LinearLayout>
 
     <!-- Widget resize handle (visible during resize) -->
-    <View
+    <TextView
         android:id="@+id/resize_handle"
         android:layout_width="16dp"
         android:layout_height="16dp"
         android:layout_gravity="bottom|end"
-        android:background="@drawable/ic_resize_handle"
         android:visibility="gone" />
 
 </FrameLayout>
