@@ -101,10 +101,10 @@ class VideoWidgetProvider : AppWidgetProvider() {
                 if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
             )
 
-            // Update mute button icon (always show muted since widget videos are always muted)
+            // Update mute button icon based on actual mute state
             views.setImageViewResource(
                 R.id.muteButton,
-                R.drawable.ic_volume_off
+                if (isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_up
             )
 
             // Update video info
@@ -114,14 +114,19 @@ class VideoWidgetProvider : AppWidgetProvider() {
 
             // Handle video playback
             if (isPlaying) {
-                // Start frame-based video animation (muted)
+                // Start frame-based video animation
                 startMutedVideoPlayback(context, appWidgetId, videoUri)
+                // Start audio playback if not muted
+                if (!isMuted) {
+                    startAudioPlayback(context, appWidgetId, videoUri)
+                }
                 // Show video display, hide thumbnail
                 views.setViewVisibility(R.id.videoThumbnail, android.view.View.GONE)
                 views.setViewVisibility(R.id.videoDisplay, android.view.View.VISIBLE)
             } else {
-                // Stop video playback and show thumbnail
+                // Stop video playback and audio
                 stopVideoPlayback(context, appWidgetId)
+                stopAudioPlayback(context, appWidgetId)
                 views.setViewVisibility(R.id.videoDisplay, android.view.View.GONE)
                 views.setViewVisibility(R.id.videoThumbnail, android.view.View.VISIBLE)
                 
@@ -229,6 +234,31 @@ class VideoWidgetProvider : AppWidgetProvider() {
             context.startService(intent)
         }
 
+        private fun startAudioPlayback(context: Context, appWidgetId: Int, videoUri: Uri) {
+            val intent = Intent(context, com.videowidgetplayer.service.WidgetAudioService::class.java).apply {
+                action = com.videowidgetplayer.service.WidgetAudioService.ACTION_PLAY_AUDIO
+                putExtra(com.videowidgetplayer.service.WidgetAudioService.EXTRA_WIDGET_ID, appWidgetId)
+                putExtra(com.videowidgetplayer.service.WidgetAudioService.EXTRA_VIDEO_URI, videoUri.toString())
+            }
+            context.startForegroundService(intent)
+        }
+
+        private fun stopAudioPlayback(context: Context, appWidgetId: Int) {
+            val intent = Intent(context, com.videowidgetplayer.service.WidgetAudioService::class.java).apply {
+                action = com.videowidgetplayer.service.WidgetAudioService.ACTION_STOP_AUDIO
+                putExtra(com.videowidgetplayer.service.WidgetAudioService.EXTRA_WIDGET_ID, appWidgetId)
+            }
+            context.startService(intent)
+        }
+
+        private fun muteAudioPlayback(context: Context, appWidgetId: Int) {
+            val intent = Intent(context, com.videowidgetplayer.service.WidgetAudioService::class.java).apply {
+                action = com.videowidgetplayer.service.WidgetAudioService.ACTION_MUTE_AUDIO
+                putExtra(com.videowidgetplayer.service.WidgetAudioService.EXTRA_WIDGET_ID, appWidgetId)
+            }
+            context.startService(intent)
+        }
+
         private fun loadVideoThumbnail(
             context: Context,
             views: RemoteViews,
@@ -294,9 +324,29 @@ class VideoWidgetProvider : AppWidgetProvider() {
             }
             
             ACTION_MUTE_UNMUTE -> {
-                // For widget videos, always muted, but toggle state for UI consistency
                 val isMuted = widgetPrefs.getMutedState(appWidgetId)
-                widgetPrefs.saveMutedState(appWidgetId, !isMuted)
+                val newMuteState = !isMuted
+                widgetPrefs.saveMutedState(appWidgetId, newMuteState)
+                
+                // Handle audio based on new mute state
+                if (newMuteState) {
+                    // Mute: stop audio playback
+                    muteAudioPlayback(context, appWidgetId)
+                } else {
+                    // Unmute: start audio playback if video is playing
+                    if (widgetPrefs.getPlayingState(appWidgetId)) {
+                        // Get current video URI and start audio
+                        val selectedVideosManager = com.videowidgetplayer.data.SelectedVideosManager(context)
+                        val selectedVideos = selectedVideosManager.loadSelectedVideos()
+                        if (selectedVideos.isNotEmpty()) {
+                            val currentIndex = widgetPrefs.getCurrentVideoIndex(appWidgetId)
+                            val adjustedIndex = if (currentIndex < selectedVideos.size) currentIndex else 0
+                            val currentVideo = selectedVideos[adjustedIndex]
+                            startAudioPlayback(context, appWidgetId, currentVideo.uri)
+                        }
+                    }
+                }
+                
                 updateAppWidget(context, appWidgetManager, appWidgetId)
             }
             
@@ -349,8 +399,9 @@ class VideoWidgetProvider : AppWidgetProvider() {
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         val widgetPrefs = WidgetPreferences(context)
         for (appWidgetId in appWidgetIds) {
-            // Stop video playback for deleted widgets
+            // Stop video and audio playback for deleted widgets
             stopVideoPlayback(context, appWidgetId)
+            stopAudioPlayback(context, appWidgetId)
             // Clear widget preferences
             widgetPrefs.deleteWidgetPrefs(appWidgetId)
         }
