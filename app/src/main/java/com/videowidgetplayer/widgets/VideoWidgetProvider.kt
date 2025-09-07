@@ -239,12 +239,6 @@ class VideoWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int,
             videoUri: String?
         ) {
-            // Update video duration
-            val duration = if (videoUri != null) {
-                getVideoDuration(context, videoUri)
-            } else "0:00"
-            views.setTextViewText(R.id.video_duration, duration)
-            
             // Update video title in overlay
             if (videoUri != null) {
                 val videoTitle = getVideoTitle(context, videoUri)
@@ -451,17 +445,6 @@ class VideoWidgetProvider : AppWidgetProvider() {
             }
         }
         
-        /**
-         * Get video duration (placeholder implementation)
-         */
-        private fun getVideoDuration(context: Context, videoUri: String): String {
-            return try {
-                // This would use MediaMetadataRetriever in a real implementation
-                "0:00"
-            } catch (e: Exception) {
-                "0:00"
-            }
-        }
     }
     
     override fun onUpdate(
