@@ -170,13 +170,11 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
             
             // Initialize the video queue for the widget
             val videoManager = WidgetVideoManager.getInstance()
-            videoManager.initialize(context)
-            videoManager.initializeVideoQueue(context, appWidgetId, selectedVideoUris)
+            videoManager.initialize(context, appWidgetId)
+            videoManager.initializeVideoQueue(context, appWidgetId)
             
-            // Save the first video as the main video URI for compatibility
-            if (selectedVideoUris.isNotEmpty()) {
-                PreferenceUtils.setWidgetVideoUri(context, appWidgetId, selectedVideoUris[0])
-            }
+            // Save the selected video queue
+            PreferenceUtils.setWidgetVideoQueue(context, appWidgetId, selectedVideoUris)
             
             // Apply gesture settings
             applyGestureSettings(context, videoManager)
@@ -207,7 +205,7 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
             
             if (gestureEnabled) {
                 videoManager.enableGestureSupport(context, appWidgetId)
-                videoManager.setGestureSensitivity(context, appWidgetId, sensitivityLevel)
+                videoManager.setGestureSensitivity(context, sensitivityLevel.toFloat())
                 Log.d(TAG, "Enabled gestures with sensitivity level $sensitivityLevel")
             } else {
                 videoManager.disableGestureSupport(context, appWidgetId)

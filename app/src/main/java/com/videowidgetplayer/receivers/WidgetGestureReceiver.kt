@@ -35,16 +35,16 @@ class WidgetGestureReceiver : BroadcastReceiver() {
                 "(velocity=$gestureVelocity, distance=$gestureDistance, confidence=$gestureConfidence)")
         
         val videoManager = WidgetVideoManager.getInstance()
-        videoManager.initialize(context)
+        videoManager.initialize(context, 0)
         
         when (intent.action) {
             ACTION_GESTURE_NEXT -> {
                 Log.d(TAG, "Processing swipe left gesture - next video")
-                videoManager.nextVideoWithGesture(context, widgetId, gestureVelocity, true)
+                videoManager.nextVideoWithGesture(context, widgetId)
             }
             ACTION_GESTURE_PREVIOUS -> {
                 Log.d(TAG, "Processing swipe right gesture - previous video")
-                videoManager.previousVideoWithGesture(context, widgetId, gestureVelocity, true)
+                videoManager.previousVideoWithGesture(context, widgetId)
             }
             else -> {
                 Log.w(TAG, "Unknown gesture action: ${intent.action}")

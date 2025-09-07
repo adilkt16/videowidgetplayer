@@ -1,0 +1,884 @@
+package com.videowidgetplayer.widgets
+
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.net.Uri
+import android.os.IBinder
+import android.util.Log
+import android.widget.RemoteViews
+import com.videowidgetplayer.R
+import com.videowidgetplayer.data.VideoQueueManager
+import com.videowidgetplayer.data.LoopMode
+import com.videowidgetplayer.services.VideoPlaybackService
+import com.videowidgetplayer.services.WidgetGestureService
+import com.videowidgetplayer.utils.PreferenceUtils
+
+class WidgetVideoManager private constructor() {
+    
+    companion object {
+        private const val TAG = "WidgetVideoManager"
+        
+        @Volatile
+        private var INSTANCE: WidgetVideoManager? = null
+        
+        fun getInstance(): WidgetVideoManager {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: WidgetVideoManager().also { INSTANCE = it }
+            }
+        }
+    }
+    
+    private var videoPlaybackService: VideoPlaybackService? = null
+    private var isServiceConnected = false
+    private val queueManager = VideoQueueManager.getInstance()
+    private val gestureManager = WidgetGestureManager.getInstance()
+    private val transitionManager = WidgetTransitionManager.getInstance()
+    
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as VideoPlaybackService.VideoPlaybackBinder
+            videoPlaybackService = binder.getService()
+            isServiceConnected = true
+            Log.d(TAG, "Video playback service connected")
+        }
+        
+        override fun onServiceDisconnected(name: ComponentName?) {
+            videoPlaybackService = null
+            isServiceConnected = false
+            Log.d(TAG, "Video playback service disconnected")
+        }
+    }
+    
+    /**
+     * Initialize the video manager and bind to playback service
+     */
+    fun initialize(context: Context) {
+        if (!isServiceConnected) {
+            val intent = Intent(context, VideoPlaybackService::class.java)
+            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        }
+    }
+    
+    /**
+     * Release resources and unbind from service
+     */
+    fun release(context: Context) {
+        if (isServiceConnected) {
+            try {
+                context.unbindService(serviceConnection)
+                isServiceConnected = false
+            } catch (e: Exception) {
+                Log.e(TAG, "Error unbinding service", e)
+            }
+        }
+    }
+    
+    /**
+     * Load video for a specific widget
+     */
+    fun loadVideoForWidget(context: Context, widgetId: Int, videoUri: String) {
+        Log.d(TAG, "Loading video for widget $widgetId: $videoUri")
+        
+        try {
+            val intent = Intent(context, VideoPlaybackService::class.java).apply {
+                action = VideoPlaybackService.ACTION_LOAD_VIDEO
+                putExtra(VideoPlaybackService.EXTRA_WIDGET_ID, widgetId)
+                putExtra(VideoPlaybackService.EXTRA_VIDEO_URI, videoUri)
+            }
+            context.startService(intent)
+            
+            // Update widget UI to show loading state
+            updateWidgetLoadingState(context, widgetId, true)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading video for widget", e)
+            handleVideoError(context, widgetId, "Failed to load video")
+        }
+    }
+    
+    /**
+     * Play video in widget
+     */
+    fun playVideo(context: Context, widgetId: Int) {
+        Log.d(TAG, "Playing video for widget: $widgetId")
+        
+        try {
+            val videoUri = PreferenceUtils.getWidgetVideoUri(context, widgetId)
+            
+            if (videoUri.isNullOrEmpty()) {
+                Log.w(TAG, "No video URI found for widget: $widgetId")
+                handleVideoError(context, widgetId, "No video configured")
+                return
+            }
+            
+            // Ensure video is loaded first
+            if (!isVideoLoadedForWidget(widgetId)) {
+                loadVideoForWidget(context, widgetId, videoUri)
+            }
+            
+            val intent = Intent(context, VideoPlaybackService::class.java).apply {
+                action = VideoPlaybackService.ACTION_PLAY
+                putExtra(VideoPlaybackService.EXTRA_WIDGET_ID, widgetId)
+            }
+            context.startService(intent)
+            
+            // Update widget UI immediately
+            PreferenceUtils.setWidgetPlayState(context, widgetId, true)
+            updateWidgetPlayState(context, widgetId, true)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error playing video", e)
+            handleVideoError(context, widgetId, "Playback failed")
+        }
+    }
+    
+    /**
+     * Pause video in widget
+     */
+    fun pauseVideo(context: Context, widgetId: Int) {
+        Log.d(TAG, "Pausing video for widget: $widgetId")
+        
+        try {
+            val intent = Intent(context, VideoPlaybackService::class.java).apply {
+                action = VideoPlaybackService.ACTION_PAUSE
+                putExtra(VideoPlaybackService.EXTRA_WIDGET_ID, widgetId)
+            }
+            context.startService(intent)
+            
+            // Update widget UI immediately
+            PreferenceUtils.setWidgetPlayState(context, widgetId, false)
+            updateWidgetPlayState(context, widgetId, false)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error pausing video", e)
+        }
+    }
+    
+    /**
+     * Stop video in widget
+     */
+    fun stopVideo(context: Context, widgetId: Int) {
+        Log.d(TAG, "Stopping video for widget: $widgetId")
+        
+        try {
+            val intent = Intent(context, VideoPlaybackService::class.java).apply {
+                action = VideoPlaybackService.ACTION_STOP
+                putExtra(VideoPlaybackService.EXTRA_WIDGET_ID, widgetId)
+            }
+            context.startService(intent)
+            
+            // Update widget UI
+            PreferenceUtils.setWidgetPlayState(context, widgetId, false)
+            updateWidgetPlayState(context, widgetId, false)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping video", e)
+        }
+    }
+    
+    /**
+     * Toggle play/pause for widget
+     */
+    fun togglePlayPause(context: Context, widgetId: Int) {
+        val isPlaying = PreferenceUtils.getWidgetPlayState(context, widgetId)
+        
+        if (isPlaying) {
+            pauseVideo(context, widgetId)
+        } else {
+            playVideo(context, widgetId)
+        }
+    }
+    
+    /**
+     * Navigate to next video in queue
+     */
+    fun nextVideo(context: Context, widgetId: Int) {
+        Log.d(TAG, "Navigating to next video for widget: $widgetId")
+        
+        try {
+            // Get current queue from preferences
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) {
+                Log.w(TAG, "No video queue found for widget: $widgetId")
+                return
+            }
+            
+            // Initialize queue manager if needed
+            if (!queueManager.hasQueue(widgetId)) {
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+                val isShuffleEnabled = PreferenceUtils.getWidgetShuffleEnabled(context, widgetId)
+                val loopMode = PreferenceUtils.getWidgetLoopMode(context, widgetId)
+                
+                queueManager.initializeQueue(
+                    context = context,
+                    widgetId = widgetId,
+                    videoUris = videoUris,
+                    startIndex = currentIndex,
+                    shuffleEnabled = isShuffleEnabled,
+                    loopMode = VideoQueueManager.LoopMode.values()[loopMode]
+                )
+            }
+            
+            // Navigate to next video
+            val nextVideoUri = queueManager.nextVideo(context, widgetId)
+            if (nextVideoUri != null) {
+                // Stop current video first
+                stopVideo(context, widgetId)
+                
+                // Load and play next video
+                loadVideoForWidget(context, widgetId, nextVideoUri)
+                
+                // Update widget info display
+                updateWidgetQueueInfo(context, widgetId)
+            } else {
+                Log.d(TAG, "No next video available (end of queue)")
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to next video", e)
+        }
+    }
+    
+    /**
+     * Navigate to previous video in queue
+     */
+    fun previousVideo(context: Context, widgetId: Int) {
+        Log.d(TAG, "Navigating to previous video for widget: $widgetId")
+        
+        try {
+            // Get current queue from preferences
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) {
+                Log.w(TAG, "No video queue found for widget: $widgetId")
+                return
+            }
+            
+            // Initialize queue manager if needed
+            if (!queueManager.hasQueue(widgetId)) {
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+                val isShuffleEnabled = PreferenceUtils.getWidgetShuffleEnabled(context, widgetId)
+                val loopMode = PreferenceUtils.getWidgetLoopMode(context, widgetId)
+                
+                queueManager.initializeQueue(
+                    context = context,
+                    widgetId = widgetId,
+                    videoUris = videoUris,
+                    startIndex = currentIndex,
+                    shuffleEnabled = isShuffleEnabled,
+                    loopMode = VideoQueueManager.LoopMode.values()[loopMode]
+                )
+            }
+            
+            // Navigate to previous video
+            val previousVideoUri = queueManager.previousVideo(context, widgetId)
+            if (previousVideoUri != null) {
+                // Stop current video first
+                stopVideo(context, widgetId)
+                
+                // Load and play previous video
+                loadVideoForWidget(context, widgetId, previousVideoUri)
+                
+                // Update widget info display
+                updateWidgetQueueInfo(context, widgetId)
+            } else {
+                Log.d(TAG, "No previous video available (start of queue)")
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to previous video", e)
+        }
+    }
+    
+    /**
+     * Toggle shuffle mode for widget queue
+     */
+    fun toggleShuffle(context: Context, widgetId: Int) {
+        Log.d(TAG, "Toggling shuffle for widget: $widgetId")
+        
+        try {
+            // Get current queue from preferences
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) {
+                Log.w(TAG, "No video queue found for widget: $widgetId")
+                return
+            }
+            
+            // Initialize queue manager if needed
+            if (!queueManager.hasQueue(widgetId)) {
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+                val isShuffleEnabled = PreferenceUtils.getWidgetShuffleEnabled(context, widgetId)
+                val loopMode = PreferenceUtils.getWidgetLoopMode(context, widgetId)
+                
+                queueManager.initializeQueue(
+                    context = context,
+                    widgetId = widgetId,
+                    videoUris = videoUris,
+                    startIndex = currentIndex,
+                    shuffleEnabled = isShuffleEnabled,
+                    loopMode = VideoQueueManager.LoopMode.values()[loopMode]
+                )
+            }
+            
+            // Toggle shuffle
+            queueManager.toggleShuffle(context, widgetId)
+            
+            // Update widget UI to reflect shuffle state
+            updateWidgetShuffleState(context, widgetId)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error toggling shuffle", e)
+        }
+    }
+    
+    /**
+     * Cycle through loop modes (NONE -> SINGLE -> ALL -> NONE)
+     */
+    fun cycleLoopMode(context: Context, widgetId: Int) {
+        Log.d(TAG, "Cycling loop mode for widget: $widgetId")
+        
+        try {
+            // Get current queue from preferences
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) {
+                Log.w(TAG, "No video queue found for widget: $widgetId")
+                return
+            }
+            
+            // Initialize queue manager if needed
+            if (!queueManager.hasQueue(widgetId)) {
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+                val isShuffleEnabled = PreferenceUtils.getWidgetShuffleEnabled(context, widgetId)
+                val loopMode = PreferenceUtils.getWidgetLoopMode(context, widgetId)
+                
+                queueManager.initializeQueue(
+                    context = context,
+                    widgetId = widgetId,
+                    videoUris = videoUris,
+                    startIndex = currentIndex,
+                    shuffleEnabled = isShuffleEnabled,
+                    loopMode = VideoQueueManager.LoopMode.values()[loopMode]
+                )
+            }
+            
+            // Get current loop mode and cycle to next
+            val currentLoopMode = queueManager.getLoopMode(widgetId)
+            val nextLoopMode = when (currentLoopMode) {
+                VideoQueueManager.LoopMode.NONE -> VideoQueueManager.LoopMode.SINGLE
+                VideoQueueManager.LoopMode.SINGLE -> VideoQueueManager.LoopMode.ALL
+                VideoQueueManager.LoopMode.ALL -> VideoQueueManager.LoopMode.NONE
+            }
+            
+            queueManager.setLoopMode(context, widgetId, nextLoopMode)
+            
+            // Update widget UI to reflect loop state
+            updateWidgetLoopState(context, widgetId, nextLoopMode)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cycling loop mode", e)
+        }
+    }
+    
+    /**
+     * Initialize video queue for widget
+     */
+    fun initializeVideoQueue(context: Context, widgetId: Int, videoUris: List<String>) {
+        Log.d(TAG, "Initializing video queue for widget $widgetId with ${videoUris.size} videos")
+        
+        try {
+            // Save queue to preferences
+            PreferenceUtils.setWidgetVideoQueue(context, widgetId, videoUris)
+            PreferenceUtils.setWidgetCurrentVideoIndex(context, widgetId, 0)
+            
+            // Initialize queue manager
+            queueManager.initializeQueue(
+                context = context,
+                widgetId = widgetId,
+                videoUris = videoUris,
+                startIndex = 0,
+                shuffleEnabled = false,
+                loopMode = VideoQueueManager.LoopMode.NONE
+            )
+            
+            // Load first video if queue is not empty
+            if (videoUris.isNotEmpty()) {
+                loadVideoForWidget(context, widgetId, videoUris[0])
+                updateWidgetQueueInfo(context, widgetId)
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing video queue", e)
+        }
+    }
+    
+    /**
+     * Navigate to next video with gesture transition
+     */
+    fun nextVideoWithGesture(
+        context: Context,
+        widgetId: Int,
+        gestureVelocity: Float = 0f,
+        enableTransition: Boolean = true
+    ) {
+        Log.d(TAG, "Navigating to next video with gesture for widget: $widgetId")
+        
+        try {
+            val currentVideoUri = PreferenceUtils.getWidgetVideoUri(context, widgetId)
+            val nextVideoUri = getNextVideoUri(context, widgetId)
+            
+            if (nextVideoUri != null) {
+                if (enableTransition && gestureManager.isGestureEnabled(context, widgetId)) {
+                    val transitionConfig = transitionManager.createTransitionForGesture(
+                        WidgetTransitionManager.SwipeDirection.LEFT,
+                        gestureVelocity
+                    )
+                    
+                    transitionManager.executeTransition(
+                        context = context,
+                        widgetId = widgetId,
+                        fromVideoUri = currentVideoUri,
+                        toVideoUri = nextVideoUri,
+                        direction = WidgetTransitionManager.SwipeDirection.LEFT,
+                        config = transitionConfig
+                    )
+                } else {
+                    // Standard navigation without transition
+                    nextVideo(context, widgetId)
+                }
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to next video with gesture", e)
+            // Fallback to standard navigation
+            nextVideo(context, widgetId)
+        }
+    }
+    
+    /**
+     * Navigate to previous video with gesture transition
+     */
+    fun previousVideoWithGesture(
+        context: Context,
+        widgetId: Int,
+        gestureVelocity: Float = 0f,
+        enableTransition: Boolean = true
+    ) {
+        Log.d(TAG, "Navigating to previous video with gesture for widget: $widgetId")
+        
+        try {
+            val currentVideoUri = PreferenceUtils.getWidgetVideoUri(context, widgetId)
+            val previousVideoUri = getPreviousVideoUri(context, widgetId)
+            
+            if (previousVideoUri != null) {
+                if (enableTransition && gestureManager.isGestureEnabled(context, widgetId)) {
+                    val transitionConfig = transitionManager.createTransitionForGesture(
+                        WidgetTransitionManager.SwipeDirection.RIGHT,
+                        gestureVelocity
+                    )
+                    
+                    transitionManager.executeTransition(
+                        context = context,
+                        widgetId = widgetId,
+                        fromVideoUri = currentVideoUri,
+                        toVideoUri = previousVideoUri,
+                        direction = WidgetTransitionManager.SwipeDirection.RIGHT,
+                        config = transitionConfig
+                    )
+                } else {
+                    // Standard navigation without transition
+                    previousVideo(context, widgetId)
+                }
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to previous video with gesture", e)
+            // Fallback to standard navigation
+            previousVideo(context, widgetId)
+        }
+    }
+    
+    /**
+     * Enable gesture support for widget
+     */
+    fun enableGestureSupport(context: Context, widgetId: Int) {
+        Log.d(TAG, "Enabling gesture support for widget: $widgetId")
+        
+        try {
+            gestureManager.setGestureEnabled(context, widgetId, true)
+            
+            // Start gesture detection service
+            val intent = Intent(context, WidgetGestureService::class.java).apply {
+                action = WidgetGestureService.ACTION_START_GESTURE_DETECTION
+                putExtra(WidgetGestureService.EXTRA_WIDGET_ID, widgetId)
+                // Note: Widget bounds would need to be determined from AppWidgetManager
+            }
+            context.startService(intent)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error enabling gesture support for widget $widgetId", e)
+        }
+    }
+    
+    /**
+     * Disable gesture support for widget
+     */
+    fun disableGestureSupport(context: Context, widgetId: Int) {
+        Log.d(TAG, "Disabling gesture support for widget: $widgetId")
+        
+        try {
+            gestureManager.setGestureEnabled(context, widgetId, false)
+            
+            // Stop gesture detection service
+            val intent = Intent(context, WidgetGestureService::class.java).apply {
+                action = WidgetGestureService.ACTION_STOP_GESTURE_DETECTION
+                putExtra(WidgetGestureService.EXTRA_WIDGET_ID, widgetId)
+            }
+            context.startService(intent)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error disabling gesture support for widget $widgetId", e)
+        }
+    }
+    
+    /**
+     * Set gesture sensitivity for widget
+     */
+    fun setGestureSensitivity(context: Context, widgetId: Int, sensitivity: Int) {
+        gestureManager.setGestureSensitivity(context, widgetId, sensitivity)
+        Log.d(TAG, "Set gesture sensitivity for widget $widgetId to level $sensitivity")
+    }
+    
+    /**
+     * Get next video URI without navigating
+     */
+    private fun getNextVideoUri(context: Context, widgetId: Int): String? {
+        return try {
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) return null
+            
+            if (!queueManager.hasQueue(widgetId)) {
+                initializeQueueIfNeeded(context, widgetId, videoUris)
+            }
+            
+            // Peek at next video without changing position
+            val queue = queueManager.getQueue(widgetId)
+            if (queue != null && queueManager.hasNext(widgetId)) {
+                val nextIndex = queue.getNextIndex()
+                if (nextIndex >= 0 && nextIndex < queue.videos.size) {
+                    queue.videos[nextIndex]
+                } else null
+            } else null
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting next video URI", e)
+            null
+        }
+    }
+    
+    /**
+     * Get previous video URI without navigating
+     */
+    private fun getPreviousVideoUri(context: Context, widgetId: Int): String? {
+        return try {
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.isEmpty()) return null
+            
+            if (!queueManager.hasQueue(widgetId)) {
+                initializeQueueIfNeeded(context, widgetId, videoUris)
+            }
+            
+            // Peek at previous video without changing position
+            val queue = queueManager.getQueue(widgetId)
+            if (queue != null && queueManager.hasPrevious(widgetId)) {
+                val previousIndex = queue.getPreviousIndex()
+                if (previousIndex >= 0 && previousIndex < queue.videos.size) {
+                    queue.videos[previousIndex]
+                } else null
+            } else null
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting previous video URI", e)
+            null
+        }
+    }
+    
+    /**
+     * Initialize queue if needed
+     */
+    private fun initializeQueueIfNeeded(context: Context, widgetId: Int, videoUris: List<String>) {
+        val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+        val isShuffleEnabled = PreferenceUtils.getWidgetShuffleEnabled(context, widgetId)
+        val loopMode = PreferenceUtils.getWidgetLoopMode(context, widgetId)
+        
+        queueManager.initializeQueue(
+            context = context,
+            widgetId = widgetId,
+            videoUris = videoUris,
+            startIndex = currentIndex,
+            shuffleEnabled = isShuffleEnabled,
+            loopMode = VideoQueueManager.LoopMode.values()[loopMode]
+        )
+    }
+    
+    /**
+     * Check if video is loaded for widget
+     */
+    private fun isVideoLoadedForWidget(widgetId: Int): Boolean {
+        return videoPlaybackService?.let { service ->
+            // For now, we'll assume video needs to be loaded each time
+            // In a more complex implementation, we could track loaded videos
+            false
+        } ?: false
+    }
+    
+    /**
+     * Update widget with queue information
+     */
+    private fun updateWidgetQueueInfo(context: Context, widgetId: Int) {
+        try {
+            val queue = queueManager.getQueue(widgetId)
+            if (queue != null) {
+                val appWidgetManager = AppWidgetManager.getInstance(context)
+                val options = appWidgetManager.getAppWidgetOptions(widgetId)
+                val layoutId = VideoWidgetProvider.getWidgetLayout(options)
+                val views = RemoteViews(context.packageName, layoutId)
+                
+                // Update queue info text if available in large layout
+                if (hasView(layoutId, R.id.queue_info)) {
+                    val queueInfo = "${queue.currentIndex + 1}/${queue.videos.size}"
+                    views.setTextViewText(R.id.queue_info, queueInfo)
+                }
+                
+                // Update navigation button states
+                val hasPrevious = queueManager.hasPrevious(widgetId)
+                val hasNext = queueManager.hasNext(widgetId)
+                
+                if (hasView(layoutId, R.id.previous_button)) {
+                    views.setViewVisibility(R.id.previous_button, 
+                        if (hasPrevious) android.view.View.VISIBLE else android.view.View.INVISIBLE)
+                }
+                
+                if (hasView(layoutId, R.id.next_button)) {
+                    views.setViewVisibility(R.id.next_button, 
+                        if (hasNext) android.view.View.VISIBLE else android.view.View.INVISIBLE)
+                }
+                
+                appWidgetManager.updateAppWidget(widgetId, views)
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating widget queue info", e)
+        }
+    }
+    
+    /**
+     * Update widget shuffle state UI
+     */
+    private fun updateWidgetShuffleState(context: Context, widgetId: Int) {
+        try {
+            val isShuffleEnabled = queueManager.isShuffleEnabled(widgetId)
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val options = appWidgetManager.getAppWidgetOptions(widgetId)
+            val layoutId = VideoWidgetProvider.getWidgetLayout(options)
+            val views = RemoteViews(context.packageName, layoutId)
+            
+            // Update shuffle button appearance if available
+            if (hasView(layoutId, R.id.shuffle_button)) {
+                // You can change button appearance here based on shuffle state
+                // For example, different background or icon
+                val alpha = if (isShuffleEnabled) 255 else 128
+                views.setInt(R.id.shuffle_button, "setImageAlpha", alpha)
+            }
+            
+            appWidgetManager.updateAppWidget(widgetId, views)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating widget shuffle state", e)
+        }
+    }
+    
+    /**
+     * Update widget loop state UI
+     */
+    private fun updateWidgetLoopState(context: Context, widgetId: Int, loopMode: VideoQueueManager.LoopMode) {
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val options = appWidgetManager.getAppWidgetOptions(widgetId)
+            val layoutId = VideoWidgetProvider.getWidgetLayout(options)
+            val views = RemoteViews(context.packageName, layoutId)
+            
+            // Update loop button appearance if available
+            if (hasView(layoutId, R.id.loop_button)) {
+                // You can change button appearance here based on loop mode
+                val alpha = when (loopMode) {
+                    VideoQueueManager.LoopMode.NONE -> 128
+                    VideoQueueManager.LoopMode.SINGLE -> 255
+                    VideoQueueManager.LoopMode.ALL -> 255
+                }
+                views.setInt(R.id.loop_button, "setImageAlpha", alpha)
+            }
+            
+            appWidgetManager.updateAppWidget(widgetId, views)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating widget loop state", e)
+        }
+    }
+    
+    /**
+     * Update widget loading state
+     */
+    private fun updateWidgetLoadingState(context: Context, widgetId: Int, isLoading: Boolean) {
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val views = RemoteViews(context.packageName, R.layout.video_widget)
+            
+            // Show/hide loading indicator
+            views.setViewVisibility(R.id.loading_indicator, 
+                if (isLoading) android.view.View.VISIBLE else android.view.View.GONE)
+            views.setViewVisibility(R.id.play_overlay, 
+                if (isLoading) android.view.View.GONE else android.view.View.VISIBLE)
+            
+            appWidgetManager.updateAppWidget(widgetId, views)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating widget loading state", e)
+        }
+    }
+    
+    /**
+     * Update widget play state UI
+     */
+    private fun updateWidgetPlayState(context: Context, widgetId: Int, isPlaying: Boolean) {
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            
+            // Get the appropriate layout for this widget size
+            val options = appWidgetManager.getAppWidgetOptions(widgetId)
+            val layoutId = VideoWidgetProvider.getWidgetLayout(options)
+            val views = RemoteViews(context.packageName, layoutId)
+            
+            // Update play/pause button
+            val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
+            val playPauseDesc = if (isPlaying) {
+                context.getString(R.string.pause)
+            } else {
+                context.getString(R.string.play)
+            }
+            
+            views.setImageViewResource(R.id.play_pause_button, playPauseIcon)
+            views.setContentDescription(R.id.play_pause_button, playPauseDesc)
+            
+            // Hide/show play overlay
+            if (hasView(layoutId, R.id.play_overlay)) {
+                views.setViewVisibility(R.id.play_overlay, 
+                    if (isPlaying) android.view.View.GONE else android.view.View.VISIBLE)
+            }
+            
+            // Hide loading indicator
+            if (hasView(layoutId, R.id.loading_indicator)) {
+                views.setViewVisibility(R.id.loading_indicator, android.view.View.GONE)
+            }
+            
+            appWidgetManager.updateAppWidget(widgetId, views)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating widget play state", e)
+        }
+    }
+    
+    /**
+     * Handle video errors
+     */
+    private fun handleVideoError(context: Context, widgetId: Int, errorMessage: String) {
+        Log.e(TAG, "Video error for widget $widgetId: $errorMessage")
+        
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val views = RemoteViews(context.packageName, R.layout.video_widget)
+            
+            // Hide loading indicator
+            views.setViewVisibility(R.id.loading_indicator, android.view.View.GONE)
+            
+            // Show error state - could set a different thumbnail or text
+            views.setImageViewResource(R.id.video_thumbnail, R.drawable.ic_video_placeholder)
+            views.setViewVisibility(R.id.play_overlay, android.view.View.VISIBLE)
+            
+            // Reset play state
+            PreferenceUtils.setWidgetPlayState(context, widgetId, false)
+            views.setImageViewResource(R.id.play_pause_button, R.drawable.ic_play)
+            
+            appWidgetManager.updateAppWidget(widgetId, views)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error handling video error", e)
+        }
+    }
+    
+    /**
+     * Check if a layout contains a specific view
+     */
+    private fun hasView(layoutId: Int, viewId: Int): Boolean {
+        return when (layoutId) {
+            R.layout.video_widget_compact -> viewId in listOf(
+                R.id.play_pause_button, R.id.video_thumbnail
+            )
+            R.layout.video_widget_large -> true // Large layout has all views including queue controls
+            else -> viewId in listOf(
+                R.id.play_pause_button, R.id.video_thumbnail, R.id.play_overlay, R.id.loading_indicator,
+                R.id.next_button, R.id.previous_button, R.id.mute_button
+            )
+        }
+    }
+    
+    /**
+     * Validate video URI
+     */
+    fun isValidVideoUri(context: Context, uriString: String): Boolean {
+        return try {
+            val uri = Uri.parse(uriString)
+            context.contentResolver.openInputStream(uri)?.use { true } ?: false
+        } catch (e: Exception) {
+            Log.w(TAG, "Invalid video URI: $uriString", e)
+            false
+        }
+    }
+    
+    /**
+     * Set playback volume for widget
+     */
+    fun setVolume(context: Context, widgetId: Int, volume: Float) {
+        Log.d(TAG, "Setting volume for widget $widgetId: $volume")
+        
+        try {
+            videoPlaybackService?.setVolume(volume)
+            Log.d(TAG, "Volume set successfully")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting volume for widget: $widgetId", e)
+        }
+    }
+    
+    /**
+     * Get video playback info
+     */
+    fun getPlaybackInfo(widgetId: Int): PlaybackInfo? {
+        return videoPlaybackService?.let { service ->
+            PlaybackInfo(
+                isPlaying = service.isPlaying(),
+                currentPosition = service.getCurrentPosition(),
+                duration = service.getDuration(),
+                playbackState = service.getPlaybackState()
+            )
+        }
+    }
+    
+    data class PlaybackInfo(
+        val isPlaying: Boolean,
+        val currentPosition: Long,
+        val duration: Long,
+        val playbackState: Int
+    )
+}

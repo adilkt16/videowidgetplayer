@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runBlocking
 
 class VideoRepository(private val context: Context) {
     
@@ -113,7 +114,9 @@ class VideoRepository(private val context: Context) {
      */
     fun getVideoFilesSync(): List<VideoFile> {
         return try {
-            MediaUtils.getVideoFiles(context)
+            runBlocking {
+                MediaUtils.getVideoFiles(context)
+            }
         } catch (e: Exception) {
             emptyList()
         }
@@ -124,7 +127,9 @@ class VideoRepository(private val context: Context) {
      */
     fun getShortVideoFilesSync(maxDurationSeconds: Int = 60): List<VideoFile> {
         return try {
-            MediaUtils.getShortVideoFiles(context, maxDurationSeconds)
+            runBlocking {
+                MediaUtils.getShortVideoFiles(context, maxDurationSeconds)
+            }
         } catch (e: Exception) {
             emptyList()
         }

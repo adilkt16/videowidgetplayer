@@ -225,6 +225,20 @@ class VideoQueueManager private constructor() {
     }
     
     /**
+     * Check if widget has a queue
+     */
+    fun hasQueue(widgetId: Int): Boolean {
+        return widgetQueues.containsKey(widgetId)
+    }
+    
+    /**
+     * Get video queue for widget
+     */
+    fun getQueue(widgetId: Int): VideoQueue? {
+        return widgetQueues[widgetId]
+    }
+    
+    /**
      * Remove widget queue
      */
     fun removeQueue(widgetId: Int) {
@@ -407,6 +421,13 @@ data class VideoQueue(
                 if (currentIndex > 0) currentIndex - 1 else videos.size - 1
             }
         }
+    }
+    
+    /**
+     * Check if shuffle is enabled
+     */
+    fun isShuffleEnabled(): Boolean {
+        return shuffleEnabled
     }
 }
 

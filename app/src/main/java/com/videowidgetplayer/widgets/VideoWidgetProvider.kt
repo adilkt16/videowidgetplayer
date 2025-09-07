@@ -414,7 +414,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         
         // Initialize WidgetVideoManager
         val videoManager = WidgetVideoManager.getInstance()
-        videoManager.initialize(context)
+        videoManager.initialize(context, 0) // Use 0 as placeholder for general initialization
         
         super.onEnabled(context)
     }
@@ -424,7 +424,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         
         // Release WidgetVideoManager resources
         val videoManager = WidgetVideoManager.getInstance()
-        videoManager.release(context)
+        videoManager.release(context, 0) // Use 0 as placeholder
         
         super.onDisabled(context)
     }
@@ -450,7 +450,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         
         // Use WidgetVideoManager to handle playback
         val videoManager = WidgetVideoManager.getInstance()
-        videoManager.initialize(context)
+        videoManager.initialize(context, appWidgetId)
         videoManager.togglePlayPause(context, appWidgetId)
     }
     
@@ -462,7 +462,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         
         // Use WidgetVideoManager for next video functionality
         val videoManager = WidgetVideoManager.getInstance()
-        videoManager.initialize(context)
+        videoManager.initialize(context, appWidgetId)
         videoManager.nextVideo(context, appWidgetId)
         Log.d(TAG, "Next video requested for widget: $appWidgetId")
     }
@@ -475,7 +475,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         
         // Use WidgetVideoManager for previous video functionality
         val videoManager = WidgetVideoManager.getInstance()
-        videoManager.initialize(context)
+        videoManager.initialize(context, appWidgetId)
         videoManager.previousVideo(context, appWidgetId)
         Log.d(TAG, "Previous video requested for widget: $appWidgetId")
     }
@@ -488,7 +488,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         
         // Use WidgetVideoManager for rewind seek
         val videoManager = WidgetVideoManager.getInstance()
-        videoManager.initialize(context)
+        videoManager.initialize(context, appWidgetId)
         // TODO: Add seek rewind functionality to WidgetVideoManager
         Log.d(TAG, "Rewind requested for widget: $appWidgetId")
     }
@@ -501,7 +501,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         
         // Use WidgetVideoManager for forward seek
         val videoManager = WidgetVideoManager.getInstance()
-        videoManager.initialize(context)
+        videoManager.initialize(context, appWidgetId)
         // TODO: Add seek forward functionality to WidgetVideoManager
         Log.d(TAG, "Fast forward requested for widget: $appWidgetId")
     }
@@ -521,7 +521,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         
         // Update video manager volume
         val videoManager = WidgetVideoManager.getInstance()
-        videoManager.initialize(context)
+        videoManager.initialize(context, appWidgetId)
         videoManager.setVolume(context, appWidgetId, if (newMuteState) 0f else 1f)
         
         // Update widget to reflect new mute state
@@ -539,7 +539,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         
         // Use WidgetVideoManager for shuffle functionality
         val videoManager = WidgetVideoManager.getInstance()
-        videoManager.initialize(context)
+        videoManager.initialize(context, appWidgetId)
         videoManager.toggleShuffle(context, appWidgetId)
         
         // Update widget to reflect new shuffle state
@@ -557,7 +557,7 @@ class VideoWidgetProvider : AppWidgetProvider() {
         
         // Use WidgetVideoManager for loop functionality
         val videoManager = WidgetVideoManager.getInstance()
-        videoManager.initialize(context)
+        videoManager.initialize(context, appWidgetId)
         videoManager.cycleLoopMode(context, appWidgetId)
         
         // Update widget to reflect new loop state

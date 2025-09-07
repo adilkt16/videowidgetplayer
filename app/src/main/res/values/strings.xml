@@ -10,6 +10,7 @@
     <string name="select_video">Select Video</string>
     <string name="add_widget">Add Widget</string>
     <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
     <string name="play">Play</string>
     <string name="pause">Pause</string>
     <string name="mute">Mute</string>
@@ -86,4 +87,12 @@
         <item quantity="one">%d video saved successfully!</item>
         <item quantity="other">%d videos saved successfully!</item>
     </plurals>
+    
+    <!-- Loop and Queue Controls -->
+    <string name="loop_button">Loop</string>
+    <string name="loop_none">No Loop</string>
+    <string name="loop_single">Loop Single</string>
+    <string name="loop_all">Loop All</string>
+    <string name="queue_info">Queue Info</string>
+    <string name="queue_position" formatted="false">%d of %d</string>
 </resources>
