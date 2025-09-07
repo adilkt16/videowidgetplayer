@@ -40,13 +40,68 @@ class WidgetVideoManager private constructor() {
         try {
             val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
             if (videoUris.isNotEmpty()) {
-                val currentVideoUri = videoUris[0] // Simple: just play first video
-                loadVideoForWidget(context, widgetId, currentVideoUri)
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+                val videoUri = if (currentIndex < videoUris.size) {
+                    videoUris[currentIndex]
+                } else {
+                    videoUris[0] // Fallback to first video
+                }
+                loadVideoForWidget(context, widgetId, videoUri)
                 PreferenceUtils.setWidgetPlayState(context, widgetId, true)
                 updateWidgetPlayButton(context, widgetId, true)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error playing video", e)
+        }
+    }
+    
+    /**
+     * Enhanced navigation: Go to next video in queue
+     */
+    fun playNextVideo(context: Context, widgetId: Int) {
+        Log.d(TAG, "Playing next video for widget: $widgetId")
+        try {
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.size > 1) {
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+                val nextIndex = (currentIndex + 1) % videoUris.size // Loop to beginning
+                
+                PreferenceUtils.setWidgetCurrentVideoIndex(context, widgetId, nextIndex)
+                val nextVideoUri = videoUris[nextIndex]
+                
+                loadVideoForWidget(context, widgetId, nextVideoUri)
+                PreferenceUtils.setWidgetPlayState(context, widgetId, true)
+                updateWidgetPlayButton(context, widgetId, true)
+                
+                Log.d(TAG, "Switched to video $nextIndex: $nextVideoUri")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error playing next video", e)
+        }
+    }
+    
+    /**
+     * Enhanced navigation: Go to previous video in queue
+     */
+    fun playPreviousVideo(context: Context, widgetId: Int) {
+        Log.d(TAG, "Playing previous video for widget: $widgetId")
+        try {
+            val videoUris = PreferenceUtils.getWidgetVideoQueue(context, widgetId)
+            if (videoUris.size > 1) {
+                val currentIndex = PreferenceUtils.getWidgetCurrentVideoIndex(context, widgetId)
+                val prevIndex = if (currentIndex > 0) currentIndex - 1 else videoUris.size - 1 // Loop to end
+                
+                PreferenceUtils.setWidgetCurrentVideoIndex(context, widgetId, prevIndex)
+                val prevVideoUri = videoUris[prevIndex]
+                
+                loadVideoForWidget(context, widgetId, prevVideoUri)
+                PreferenceUtils.setWidgetPlayState(context, widgetId, true)
+                updateWidgetPlayButton(context, widgetId, true)
+                
+                Log.d(TAG, "Switched to video $prevIndex: $prevVideoUri")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error playing previous video", e)
         }
     }
     
