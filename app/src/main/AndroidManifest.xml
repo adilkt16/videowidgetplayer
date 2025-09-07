@@ -2,30 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Media and storage permissions -->
-    <!-- For Android 12 and below -->
+    <!-- Essential permissions for video widget -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
         android:maxSdkVersion="32" />
-    
-    <!-- For Android 13+ (API 33+) - Granular media permissions -->
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    
-    <!-- Internet permission for ExoPlayer (if streaming) -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    
-    <!-- Wake lock for video playback -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    
-    <!-- Foreground service for background playback (if needed) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    
-    <!-- Widget update permission -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    
-    <!-- Overlay permission for gesture detection -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:allowBackup="true"
@@ -36,11 +18,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.VideoWidgetPlayer"
-        android:requestLegacyExternalStorage="false"
-        android:preserveLegacyExternalStorage="false"
         tools:targetApi="34">
         
-        <!-- Main Activity -->
+        <!-- Main Activity for video selection -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -51,30 +31,18 @@
             </intent-filter>
         </activity>
 
-        <!-- Video Selection Activity -->
-        <activity
-            android:name=".ui.VideoSelectionActivity"
-            android:exported="false"
-            android:theme="@style/Theme.VideoWidgetPlayer"
-            android:parentActivityName=".ui.MainActivity" />
-
         <!-- Video Widget Provider -->
         <receiver
-            android:name=".widgets.VideoWidgetProvider"
-            android:exported="false"
-            android:label="@string/video_widget_name">
+            android:name=".widget.VideoWidgetProvider"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="android.appwidget.action.APPWIDGET_DELETED" />
-                <action android:name="android.appwidget.action.APPWIDGET_ENABLED" />
-                <action android:name="android.appwidget.action.APPWIDGET_DISABLED" />
-                <!-- Custom widget actions -->
-                <action android:name="com.videowidgetplayer.action.WIDGET_PLAY" />
-                <action android:name="com.videowidgetplayer.action.WIDGET_PAUSE" />
-                <!-- Boot and package replacement actions -->
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <action android:name="com.videowidgetplayer.PLAY_PAUSE" />
+                <action android:name="com.videowidgetplayer.MUTE_UNMUTE" />
+                <action android:name="com.videowidgetplayer.NEXT_VIDEO" />
+                <action android:name="com.videowidgetplayer.PREVIOUS_VIDEO" />
+                <action android:name="com.videowidgetplayer.SWIPE_LEFT" />
+                <action android:name="com.videowidgetplayer.SWIPE_RIGHT" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -83,35 +51,17 @@
 
         <!-- Widget Configuration Activity -->
         <activity
-            android:name=".widgets.VideoWidgetConfigureActivity"
-            android:exported="false"
-            android:theme="@style/Theme.VideoWidgetPlayer.AppWidgetContainer">
+            android:name=".widget.VideoWidgetConfigActivity"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 
-        <!-- Video Playback Service -->
+        <!-- Widget Update Service -->
         <service
-            android:name=".services.VideoPlaybackService"
-            android:exported="false"
-            android:enabled="true" />
-            
-        <!-- Widget Gesture Service -->
-        <service
-            android:name=".services.WidgetGestureService"
-            android:exported="false"
-            android:enabled="true" />
-            
-        <!-- Widget Gesture Receiver -->
-        <receiver
-            android:name=".receivers.WidgetGestureReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.videowidgetplayer.action.GESTURE_next" />
-                <action android:name="com.videowidgetplayer.action.GESTURE_previous" />
-            </intent-filter>
-        </receiver>
+            android:name=".service.WidgetUpdateService"
+            android:exported="false" />
 
     </application>
 

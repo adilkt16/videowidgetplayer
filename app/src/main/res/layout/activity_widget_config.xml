@@ -1,33 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
-    tools:context=".ui.MainActivity">
+    android:padding="16dp">
 
     <TextView
         android:id="@+id/titleText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Video Widget Player"
-        android:textSize="24sp"
+        android:text="Configure Video Widget"
+        android:textSize="20sp"
         android:textStyle="bold"
         android:gravity="center"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp" />
+        android:layout_marginTop="16dp" />
 
     <TextView
-        android:id="@+id/descriptionText"
+        android:id="@+id/instructionText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Select videos to display in your home screen widget.\nVideos must be 60 seconds or less."
-        android:textSize="16sp"
+        android:text="Select videos to include in your widget. Only videos 60 seconds or shorter will be shown."
+        android:textSize="14sp"
         android:gravity="center"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         app:layout_constraintTop_toBottomOf="@id/titleText"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -36,30 +34,49 @@
         android:id="@+id/videoRecyclerView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         android:layout_marginBottom="16dp"
-        app:layout_constraintTop_toBottomOf="@id/descriptionText"
+        app:layout_constraintTop_toBottomOf="@id/instructionText"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/addWidgetButton" />
+        app:layout_constraintBottom_toTopOf="@id/buttonLayout" />
 
-    <Button
-        android:id="@+id/addWidgetButton"
+    <LinearLayout
+        android:id="@+id/buttonLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/add_widget"
-        android:textSize="16sp"
-        android:layout_marginBottom="16dp"
+        android:orientation="horizontal"
+        android:gravity="center"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cancel"
+            android:layout_marginEnd="8dp"
+            style="@style/Widget.Material3.Button.OutlinedButton" />
+
+        <Button
+            android:id="@+id/addButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Add Widget"
+            android:layout_marginStart="8dp" />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/emptyText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/no_videos_found"
+        android:text="No suitable videos found\n(Videos must be 60 seconds or less)"
         android:textSize="16sp"
+        android:gravity="center"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="@id/videoRecyclerView"
         app:layout_constraintBottom_toBottomOf="@id/videoRecyclerView"

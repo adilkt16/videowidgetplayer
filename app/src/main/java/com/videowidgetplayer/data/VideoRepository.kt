@@ -1,137 +1,136 @@
 package com.videowidgetplayer.data
 
 import android.content.Context
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import com.videowidgetplayer.utils.MediaUtils
-import kotlinx.coroutines.CoroutineScope
+import android.database.Cursor
+import android.net.Uri
+import android.provider.MediaStore
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.runBlocking
 
+/**
+ * Repository for accessing video files from device gallery
+ * Following the spec: Gallery integration with 60-second filtering
+ */
 class VideoRepository(private val context: Context) {
-    
-    private val _videoFiles = MutableLiveData<List<VideoFile>>()
-    val videoFiles: LiveData<List<VideoFile>> = _videoFiles
-    
-    private val _loading = MutableLiveData<Boolean>()
-    val loading: LiveData<Boolean> = _loading
-    
-    private val _shortVideos = MutableLiveData<List<VideoFile>>()
-    val shortVideos: LiveData<List<VideoFile>> = _shortVideos
-    
+
     /**
-     * Load all video files from device storage
+     * Get all videos from device gallery, filtered for widget compatibility (≤60 seconds)
      */
-    fun loadVideoFiles() {
-        _loading.value = true
-        CoroutineScope(Dispatchers.Main).launch {
-            try {
-                val videos = withContext(Dispatchers.IO) {
-                    MediaUtils.getVideoFiles(context)
+    suspend fun getVideosFromGallery(): List<VideoFile> = withContext(Dispatchers.IO) {
+        val videoList = mutableListOf<VideoFile>()
+        
+        val projection = arrayOf(
+            MediaStore.Video.Media._ID,
+            MediaStore.Video.Media.DISPLAY_NAME,
+            MediaStore.Video.Media.DURATION,
+            MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.DATA
+        )
+        
+        val selection = "${MediaStore.Video.Media.DURATION} <= ?" // Only videos ≤60 seconds
+        val selectionArgs = arrayOf("60000") // 60 seconds in milliseconds
+        
+        val sortOrder = "${MediaStore.Video.Media.DATE_ADDED} DESC"
+        
+        val cursor: Cursor? = context.contentResolver.query(
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            selectionArgs,
+            sortOrder
+        )
+        
+        cursor?.use {
+            val idColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+            val nameColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+            val durationColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+            val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+            
+            while (it.moveToNext()) {
+                val id = it.getLong(idColumn)
+                val name = it.getString(nameColumn)
+                val duration = it.getLong(durationColumn)
+                val size = it.getLong(sizeColumn)
+                
+                val contentUri = Uri.withAppendedPath(
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                    id.toString()
+                )
+                
+                // Only include videos that meet widget requirements
+                if (duration <= 60_000 && duration > 0) {
+                    videoList.add(
+                        VideoFile(
+                            id = id,
+                            name = name,
+                            uri = contentUri,
+                            duration = duration,
+                            size = size,
+                            thumbnailUri = getThumbnailUri(id)
+                        )
+                    )
                 }
-                _videoFiles.value = videos
-            } catch (e: Exception) {
-                _videoFiles.value = emptyList()
-            } finally {
-                _loading.value = false
             }
         }
+        
+        videoList
     }
     
     /**
-     * Load video files filtered by maximum duration
-     * @param maxDurationSeconds Maximum duration in seconds (default: 60)
+     * Get thumbnail URI for a video
      */
-    suspend fun getShortVideos(maxDurationSeconds: Int = 60): List<VideoFile> {
-        return withContext(Dispatchers.IO) {
-            MediaUtils.getShortVideoFiles(context, maxDurationSeconds)
-        }
+    private fun getThumbnailUri(videoId: Long): Uri {
+        return Uri.withAppendedPath(
+            MediaStore.Video.Thumbnails.EXTERNAL_CONTENT_URI,
+            videoId.toString()
+        )
     }
     
     /**
-     * Load short videos and update LiveData
-     * @param maxDurationSeconds Maximum duration in seconds
+     * Get video file by URI
      */
-    fun loadShortVideos(maxDurationSeconds: Int = 60) {
-        _loading.value = true
-        CoroutineScope(Dispatchers.Main).launch {
-            try {
-                val videos = getShortVideos(maxDurationSeconds)
-                _shortVideos.value = videos
-            } catch (e: Exception) {
-                _shortVideos.value = emptyList()
-            } finally {
-                _loading.value = false
+    suspend fun getVideoByUri(uri: Uri): VideoFile? = withContext(Dispatchers.IO) {
+        val projection = arrayOf(
+            MediaStore.Video.Media._ID,
+            MediaStore.Video.Media.DISPLAY_NAME,
+            MediaStore.Video.Media.DURATION,
+            MediaStore.Video.Media.SIZE
+        )
+        
+        val cursor: Cursor? = context.contentResolver.query(
+            uri,
+            projection,
+            null,
+            null,
+            null
+        )
+        
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val idColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+                val nameColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+                val durationColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+                val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+                
+                val id = it.getLong(idColumn)
+                val name = it.getString(nameColumn)
+                val duration = it.getLong(durationColumn)
+                val size = it.getLong(sizeColumn)
+                
+                // Only return if video meets widget requirements
+                if (duration <= 60_000 && duration > 0) {
+                    return@withContext VideoFile(
+                        id = id,
+                        name = name,
+                        uri = uri,
+                        duration = duration,
+                        size = size,
+                        thumbnailUri = getThumbnailUri(id)
+                    )
+                }
             }
         }
-    }
-    
-    /**
-     * Get a specific video by ID
-     */
-    suspend fun getVideoById(videoId: Long): VideoFile? {
-        return withContext(Dispatchers.IO) {
-            MediaUtils.getVideoById(context, videoId)
-        }
-    }
-    
-    /**
-     * Get videos by URIs
-     */
-    suspend fun getVideosByUris(uris: List<String>): List<VideoFile> {
-        return withContext(Dispatchers.IO) {
-            MediaUtils.getVideosByUris(context, uris)
-        }
-    }
-    
-    /**
-     * Check if a video file exists and is accessible
-     */
-    suspend fun isVideoAccessible(videoFile: VideoFile): Boolean {
-        return withContext(Dispatchers.IO) {
-            MediaUtils.isVideoAccessible(context, videoFile.uri)
-        }
-    }
-    
-    /**
-     * Refresh video files cache
-     */
-    fun refreshVideoFiles() {
-        loadVideoFiles()
-    }
-    
-    /**
-     * Refresh short videos cache
-     */
-    fun refreshShortVideos(maxDurationSeconds: Int = 60) {
-        loadShortVideos(maxDurationSeconds)
-    }
-    
-    /**
-     * Get video files synchronously (use with caution)
-     */
-    fun getVideoFilesSync(): List<VideoFile> {
-        return try {
-            runBlocking {
-                MediaUtils.getVideoFiles(context)
-            }
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-    
-    /**
-     * Get short video files synchronously (use with caution)
-     */
-    fun getShortVideoFilesSync(maxDurationSeconds: Int = 60): List<VideoFile> {
-        return try {
-            runBlocking {
-                MediaUtils.getShortVideoFiles(context, maxDurationSeconds)
-            }
-        } catch (e: Exception) {
-            emptyList()
-        }
+        
+        null
     }
 }

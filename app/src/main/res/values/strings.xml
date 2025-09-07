@@ -1,100 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Video Widget Player</string>
-    <string name="welcome_message">Welcome to Video Widget Player!\n\nCreate video widgets for your home screen to quickly access and play your favorite videos.</string>
-    <string name="setup_widget">Setup Widget</string>
-    <string name="browse_videos">Browse Videos</string>
-    <string name="video_widget_name">Video Player</string>
-    <string name="configure_widget_title">Configure Video Widget</string>
-    <string name="configure_widget_description">Select a video to display in your widget. You can play and control the video directly from your home screen.</string>
-    <string name="select_video">Select Video</string>
+    <string name="widget_name">Video Widget</string>
+    <string name="select_videos">Select Videos</string>
+    <string name="no_videos_found">No videos found</string>
+    <string name="select_at_least_one">Select at least one video</string>
     <string name="add_widget">Add Widget</string>
-    <string name="cancel">Cancel</string>
-    <string name="confirm">Confirm</string>
     <string name="play">Play</string>
     <string name="pause">Pause</string>
     <string name="mute">Mute</string>
     <string name="unmute">Unmute</string>
-    <string name="no_videos_found">No videos found</string>
-    <string name="permission_required">Media access permission required</string>
-    <string name="permission_denied">Permission denied. Please grant media access in Settings.</string>
-    <string name="permission_rationale">This app needs access to your videos to create video widgets on your home screen.</string>
+    <string name="next_video">Next Video</string>
+    <string name="previous_video">Previous Video</string>
+    <string name="permission_required">Storage permission required to access videos</string>
     <string name="grant_permission">Grant Permission</string>
-    <string name="open_settings">Open Settings</string>
-    <string name="widget_update_failed">Failed to update widget</string>
-    <string name="video_load_error">Error loading video</string>
-    <string name="rewind_10s">Rewind 10 seconds</string>
-    <string name="forward_10s">Forward 10 seconds</string>
-    <string name="previous_video">Previous video</string>
-    <string name="next_video">Next video</string>
-    <string name="shuffle">Shuffle</string>
-    <string name="repeat">Repeat</string>
-    <string name="widget_configure">Configure widget</string>
-    <string name="widget_not_configured">Widget not configured. Tap to set up.</string>
-    <string name="video_title_unknown">Unknown Video</string>
-    <string name="videos_selected">%d videos selected</string>
-    <string name="selected_videos_for_widget">Selected Videos for Widget</string>
-    <string name="no_videos_selected_widget">No videos selected. Please select videos in the main app first.</string>
-    
-    <!-- Gesture Settings -->
-    <string name="gesture_settings">Gesture Settings</string>
-    <string name="enable_swipe_gestures">Enable swipe gestures</string>
-    <string name="gesture_sensitivity">Gesture sensitivity</string>
-    <string name="gesture_sensitivity_low">Low</string>
-    <string name="gesture_sensitivity_medium">Medium</string>
-    <string name="gesture_sensitivity_high">High</string>
-    
-    <!-- Video Selection Activity -->
-    <string name="select_videos">Select Videos</string>
-    <string name="select_short_videos_hint">Videos ≤ 60 seconds</string>
-    <string name="no_videos_selected">No videos selected</string>
-    <string name="no_short_videos_found">No short videos found</string>
-    <string name="no_short_videos_description">No videos with duration ≤ 60 seconds were found on your device.</string>
-    <string name="loading_videos">Loading videos…</string>
-    <string name="confirm_selection">Confirm Selection</string>
-    <string name="confirm_selection_with_count">Confirm (%d videos)</string>
-    <string name="discard_selection">Discard Selection</string>
-    <string name="discard_selection_message">Are you sure you want to discard your current selection?</string>
-    <string name="keep_selecting">Keep Selecting</string>
-    <string name="discard">Discard</string>
-    <string name="close">Close</string>
-    <string name="retry">Retry</string>
-    <string name="error">Error</string>
-    <string name="error_loading_videos">Error loading videos from device storage</string>
-    <string name="error_saving_videos">Error saving selected videos</string>
-    <string name="video_permission_rationale">This app needs access to your videos to create video widgets. Please grant the media permission to continue.</string>
-    <string name="permission_denied_message">Media permission is required to access your videos. You can grant this permission in the app settings.</string>
-    
-    <!-- Video Details -->
-    <string name="video_details">Video Details</string>
-    <string name="file_name">File Name</string>
-    <string name="duration">Duration</string>
-    <string name="size">Size</string>
-    <string name="resolution">Resolution</string>
-    <string name="path">Path</string>
-    
-    <!-- Plurals -->
-    <plurals name="videos_selected_count">
-        <item quantity="zero">No videos selected</item>
-        <item quantity="one">%d video selected</item>
-        <item quantity="other">%d videos selected</item>
-    </plurals>
-    
-    <plurals name="confirm_video_selection_message">
-        <item quantity="one">Save %d selected video for use in widgets?</item>
-        <item quantity="other">Save %d selected videos for use in widgets?</item>
-    </plurals>
-    
-    <plurals name="videos_saved_message">
-        <item quantity="one">%d video saved successfully!</item>
-        <item quantity="other">%d videos saved successfully!</item>
-    </plurals>
-    
-    <!-- Loop and Queue Controls -->
-    <string name="loop_button">Loop</string>
-    <string name="loop_none">No Loop</string>
-    <string name="loop_single">Loop Single</string>
-    <string name="loop_all">Loop All</string>
-    <string name="queue_info">Queue Info</string>
-    <string name="queue_position" formatted="false">%d of %d</string>
 </resources>

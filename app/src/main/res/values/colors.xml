@@ -7,34 +7,10 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="light_blue_200">#FF81D4FA</color>
-    <color name="light_blue_600">#FF039BE5</color>
     
     <!-- Widget specific colors -->
-    <color name="widget_background">#E0000000</color>
-    <color name="widget_header_background">#AA000000</color>
-    <color name="widget_control_background">#CC000000</color>
-    <color name="widget_text_color">#FFFFFFFF</color>
-    <color name="widget_accent_color">#FF6200EE</color>
-    <color name="widget_border_color">#FF333333</color>
-    
-    <!-- Widget button states -->
-    <color name="widget_button_normal">#00000000</color>
-    <color name="widget_button_pressed">#66FFFFFF</color>
-    <color name="widget_button_focused">#44FFFFFF</color>
-    <color name="widget_button_active">#886200EE</color>
-    <color name="widget_button_border">#44FFFFFF</color>
-    
-    <!-- Transition hint colors -->
-    <color name="widget_transition_hint_background">#DD000000</color>
-    <color name="widget_transition_hint_border">#66FFFFFF</color>
-    
-    <!-- App UI colors -->
-    <color name="primary_color">@color/purple_500</color>
-    <color name="background_color">#FFF5F5F5</color>
-    <color name="surface_color">#FFFFFFFF</color>
-    <color name="text_primary">#FF212121</color>
-    <color name="text_secondary">#FF757575</color>
-    <color name="selection_overlay">#4D6200EE</color>
-    <color name="error_color">#FFF44336</color>
+    <color name="widget_background">#CC000000</color>
+    <color name="widget_control_background">#AA000000</color>
+    <color name="widget_button_tint">#FFFFFF</color>
+    <color name="widget_progress">#FF6200EE</color>
 </resources>

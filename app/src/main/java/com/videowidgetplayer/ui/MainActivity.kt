@@ -1,182 +1,186 @@
 package com.videowidgetplayer.ui
 
 import android.Manifest
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.View
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.videowidgetplayer.R
+import com.videowidgetplayer.adapter.VideoSelectionAdapter
+import com.videowidgetplayer.data.VideoFile
+import com.videowidgetplayer.data.VideoRepository
 import com.videowidgetplayer.databinding.ActivityMainBinding
-import com.videowidgetplayer.utils.PreferenceUtils
+import com.videowidgetplayer.widget.VideoWidgetProvider
+import kotlinx.coroutines.launch
 
+/**
+ * Main Activity for video selection and widget management
+ * Following the spec: Gallery integration, multi-selection, 60-second filtering
+ */
 class MainActivity : AppCompatActivity() {
-    
+
     private lateinit var binding: ActivityMainBinding
-    
+    private lateinit var videoRepository: VideoRepository
+    private lateinit var videoAdapter: VideoSelectionAdapter
+    private var selectedVideos = mutableListOf<VideoFile>()
+
+    // Permission launcher for media access
     private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val allGranted = permissions.entries.all { it.value }
-        if (allGranted) {
-            initializeApp()
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            loadVideos()
         } else {
-            // Handle permission denial
-            showPermissionDeniedMessage()
+            showPermissionError()
         }
     }
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
-        checkAndRequestPermissions()
+
+        setupViews()
+        setupRecyclerView()
+        checkPermissionAndLoadVideos()
     }
-    
-    private fun checkAndRequestPermissions() {
-        val permissionsToRequest = mutableListOf<String>()
+
+    private fun setupViews() {
+        videoRepository = VideoRepository(this)
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+ permissions
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) 
-                != PackageManager.PERMISSION_GRANTED) {
-                permissionsToRequest.add(Manifest.permission.READ_MEDIA_VIDEO)
+        binding.addWidgetButton.setOnClickListener {
+            addWidgetToHomeScreen()
+        }
+        
+        updateAddWidgetButton()
+    }
+
+    private fun setupRecyclerView() {
+        videoAdapter = VideoSelectionAdapter { video, isSelected ->
+            if (isSelected) {
+                selectedVideos.add(video)
+            } else {
+                selectedVideos.removeAll { it.id == video.id }
             }
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) 
-                != PackageManager.PERMISSION_GRANTED) {
-                permissionsToRequest.add(Manifest.permission.READ_MEDIA_AUDIO)
-            }
-        } else {
-            // Pre-Android 13 permissions
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) 
-                != PackageManager.PERMISSION_GRANTED) {
-                permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
+            updateAddWidgetButton()
         }
         
-        if (permissionsToRequest.isNotEmpty()) {
-            requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
+        binding.videoRecyclerView.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = videoAdapter
+        }
+    }
+
+    private fun checkPermissionAndLoadVideos() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_VIDEO
         } else {
-            initializeApp()
+            Manifest.permission.READ_EXTERNAL_STORAGE
         }
-    }
-    
-    private fun initializeApp() {
-        // Initialize the main UI and functionality
-        setupUI()
-    }
-    
-    private fun setupUI() {
-        updateVideoSelectionUI()
-        
-        binding.setupWidgetButton.setOnClickListener {
-            // Navigate to widget setup instruction
-            showWidgetSetupInstructions()
-        }
-        binding.browseVideosButton.setOnClickListener {
-            // Open video browser
-            openVideoBrowser()
-        }
-    }
-    
-    private fun updateVideoSelectionUI() {
-        val selectedCount = PreferenceUtils.getAppSelectedVideosCount(this)
-        if (selectedCount > 0) {
-            binding.welcomeText.text = "Video Widget Player\n\n✅ $selectedCount video(s) selected for widgets"
-            binding.browseVideosButton.text = "Change Selected Videos ($selectedCount)"
-        } else {
-            binding.welcomeText.text = "Video Widget Player\n\n📹 Select videos to use in your widgets"
-            binding.browseVideosButton.text = "Select Videos for Widgets"
-        }
-    }
-    
-    private fun showWidgetSetupInstructions() {
-        android.util.Log.d("MainActivity", "Setup Widget button clicked")
-        val selectedCount = PreferenceUtils.getAppSelectedVideosCount(this)
-        
-        if (selectedCount == 0) {
-            android.app.AlertDialog.Builder(this)
-                .setTitle("No Videos Selected")
-                .setMessage("Please select videos first using the 'Select Videos for Widgets' button, then you can add widgets to your home screen.")
-                .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
-                .show()
-        } else {
-            android.app.AlertDialog.Builder(this)
-                .setTitle("Setup Video Widget")
-                .setMessage("Great! You have $selectedCount video(s) selected.\n\nTo add a Video Widget:\n\n1. Long-press on your home screen\n2. Select 'Widgets'\n3. Find 'Video Widget Player'\n4. Drag the widget to your home screen\n\nThe widget will automatically use your selected videos!")
-                .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
-                .show()
-        }
-    }
-    
-    private fun openVideoBrowser() {
-        android.util.Log.d("MainActivity", "Browse Videos button clicked")
-        try {
-            val intent = android.content.Intent(android.content.Intent.ACTION_GET_CONTENT).apply {
-                type = "video/*"
-                putExtra(android.content.Intent.EXTRA_ALLOW_MULTIPLE, true)
+
+        when {
+            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED -> {
+                loadVideos()
             }
-            videoBrowserLauncher.launch(intent)
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Error opening video browser", e)
-            android.widget.Toast.makeText(this, "Error opening video browser: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            else -> {
+                requestPermissionLauncher.launch(permission)
+            }
         }
     }
-    
-    private val videoBrowserLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        android.util.Log.d("MainActivity", "Video browser result: ${result.resultCode}")
-        if (result.resultCode == RESULT_OK) {
-            val data = result.data
-            if (data != null) {
-                val selectedUris = mutableListOf<String>()
+
+    private fun loadVideos() {
+        lifecycleScope.launch {
+            try {
+                val videos = videoRepository.getVideosFromGallery()
                 
-                val clipData = data.clipData
-                if (clipData != null) {
-                    // Multiple videos selected
-                    for (i in 0 until clipData.itemCount) {
-                        val uri = clipData.getItemAt(i).uri
-                        selectedUris.add(uri.toString())
-                    }
-                    android.util.Log.d("MainActivity", "Selected ${selectedUris.size} videos")
+                if (videos.isEmpty()) {
+                    showEmptyState()
                 } else {
-                    // Single video selected
-                    val uri = data.data
-                    if (uri != null) {
-                        selectedUris.add(uri.toString())
-                        android.util.Log.d("MainActivity", "Selected video: $uri")
-                    }
+                    showVideoList(videos)
                 }
-                
-                if (selectedUris.isNotEmpty()) {
-                    // Save selected videos to app preferences
-                    PreferenceUtils.saveAppSelectedVideos(this, selectedUris)
-                    
-                    // Update UI
-                    updateVideoSelectionUI()
-                    
-                    android.widget.Toast.makeText(this, "✅ Selected ${selectedUris.size} video(s) for widgets", android.widget.Toast.LENGTH_LONG).show()
-                    
-                    // Show success dialog
-                    android.app.AlertDialog.Builder(this)
-                        .setTitle("Videos Selected!")
-                        .setMessage("${selectedUris.size} video(s) selected successfully!\n\nYou can now add widgets to your home screen and they will use these videos automatically.")
-                        .setPositiveButton("Add Widget Now") { dialog, _ -> 
-                            dialog.dismiss()
-                            showWidgetSetupInstructions()
-                        }
-                        .setNegativeButton("Later") { dialog, _ -> dialog.dismiss() }
-                        .show()
-                }
+            } catch (e: Exception) {
+                showError("Failed to load videos: ${e.message}")
             }
         }
     }
-    
-    private fun showPermissionDeniedMessage() {
-        binding.welcomeText.text = "Media access permissions are required for this app to function properly."
+
+    private fun showVideoList(videos: List<VideoFile>) {
+        binding.videoRecyclerView.visibility = View.VISIBLE
+        binding.emptyText.visibility = View.GONE
+        videoAdapter.submitList(videos)
+    }
+
+    private fun showEmptyState() {
+        binding.videoRecyclerView.visibility = View.GONE
+        binding.emptyText.visibility = View.VISIBLE
+        binding.emptyText.text = "No videos found under 60 seconds.\n\nThe widget only supports videos that are 60 seconds or shorter."
+    }
+
+    private fun showPermissionError() {
+        binding.videoRecyclerView.visibility = View.GONE
+        binding.emptyText.visibility = View.VISIBLE
+        binding.emptyText.text = getString(R.string.permission_required)
+        binding.addWidgetButton.text = getString(R.string.grant_permission)
+        binding.addWidgetButton.setOnClickListener {
+            checkPermissionAndLoadVideos()
+        }
+    }
+
+    private fun showError(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    }
+
+    private fun updateAddWidgetButton() {
+        val hasSelection = selectedVideos.isNotEmpty()
+        binding.addWidgetButton.isEnabled = hasSelection
+        binding.addWidgetButton.text = if (hasSelection) {
+            "Add Widget (${selectedVideos.size} videos)"
+        } else {
+            getString(R.string.select_at_least_one)
+        }
+    }
+
+    private fun addWidgetToHomeScreen() {
+        if (selectedVideos.isEmpty()) {
+            Toast.makeText(this, getString(R.string.select_at_least_one), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Launch widget picker
+        val appWidgetManager = AppWidgetManager.getInstance(this)
+        val myProvider = ComponentName(this, VideoWidgetProvider::class.java)
+        
+        if (appWidgetManager.isRequestPinAppWidgetSupported) {
+            // Create intent for widget configuration
+            val configIntent = Intent(this, VideoWidgetProvider::class.java).apply {
+                action = "com.videowidgetplayer.CONFIGURE_WIDGET"
+                putExtra("selected_video_uris", selectedVideos.map { it.uri.toString() }.toTypedArray())
+            }
+            
+            val successCallback = android.app.PendingIntent.getBroadcast(
+                this, 0, configIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+            
+            val result = appWidgetManager.requestPinAppWidget(myProvider, null, successCallback)
+            
+            if (result) {
+                Toast.makeText(this, "Widget will be added to home screen", Toast.LENGTH_LONG).show()
+                finish()
+            } else {
+                Toast.makeText(this, "Unable to add widget. Please try adding from widgets menu.", Toast.LENGTH_LONG).show()
+            }
+        } else {
+            Toast.makeText(this, "Please add widget from home screen widgets menu", Toast.LENGTH_LONG).show()
+        }
     }
 }

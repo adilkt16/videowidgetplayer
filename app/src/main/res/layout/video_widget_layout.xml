@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background">
+
+    <!-- Video Display Area -->
+    <ImageView
+        android:id="@+id/videoThumbnail"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="Video thumbnail" />
+
+    <!-- Control Overlay -->
+    <LinearLayout
+        android:id="@+id/controlOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/control_background"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <!-- Previous Button -->
+        <ImageButton
+            android:id="@+id/previousButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_previous"
+            android:tint="@color/widget_button_tint"
+            android:contentDescription="@string/previous_video"
+            android:layout_marginEnd="8dp" />
+
+        <!-- Play/Pause Button -->
+        <ImageButton
+            android:id="@+id/playPauseButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_play"
+            android:tint="@color/widget_button_tint"
+            android:contentDescription="@string/play"
+            android:layout_marginHorizontal="8dp" />
+
+        <!-- Next Button -->
+        <ImageButton
+            android:id="@+id/nextButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_next"
+            android:tint="@color/widget_button_tint"
+            android:contentDescription="@string/next_video"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="16dp" />
+
+        <!-- Mute/Unmute Button -->
+        <ImageButton
+            android:id="@+id/muteButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_volume_up"
+            android:tint="@color/widget_button_tint"
+            android:contentDescription="@string/mute" />
+
+    </LinearLayout>
+
+    <!-- Loading Indicator -->
+    <ProgressBar
+        android:id="@+id/loadingIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
+</FrameLayout>
