@@ -11,8 +11,12 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Player
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.videowidgetplayer.R
+import com.videowidgetplayer.adapters.ConfigVideoAdapter
 import com.videowidgetplayer.databinding.ActivityVideoWidgetConfigureBinding
 import com.videowidgetplayer.ui.MainActivity
 import com.videowidgetplayer.utils.PreferenceUtils
@@ -26,6 +30,8 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
     private lateinit var binding: ActivityVideoWidgetConfigureBinding
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
     private val selectedVideoUris = mutableListOf<String>()
+    private lateinit var configVideoAdapter: ConfigVideoAdapter
+    private var exoPlayer: ExoPlayer? = null
     
     // Register for multiple video selection
     private val videoSelectionLauncher = registerForActivityResult(
@@ -72,19 +78,88 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
             
             configureWidget()
         }
-        
+
         binding.selectVideoButton.setOnClickListener {
             showMainAppRedirectDialog()
         }
         
+        // Setup cancel button
+        binding.cancelButton.setOnClickListener {
+            finish()
+        }
+        
+        // Initialize RecyclerView and adapter
+        setupSelectedVideosRecyclerView()
+
         // Set up gesture settings if available in layout
         setupGestureSettings()
-        
+
         // Update UI based on selected videos
         updateVideoSelectionDisplay()
     }
     
-    private fun setupGestureSettings() {
+    private fun setupSelectedVideosRecyclerView() {
+        configVideoAdapter = ConfigVideoAdapter(
+            onVideoPlay = { videoUri ->
+                playVideo(videoUri)
+            },
+            onVideoRemove = { videoUri ->
+                removeVideoFromSelection(videoUri)
+            }
+        )
+        
+        binding.selectedVideosRecyclerView.apply {
+            layoutManager = LinearLayoutManager(this@VideoWidgetConfigureActivity)
+            adapter = configVideoAdapter
+        }
+    }
+    
+    private fun playVideo(videoUri: String) {
+        try {
+            // Release previous player if exists
+            exoPlayer?.release()
+            
+            // Create new player
+            exoPlayer = ExoPlayer.Builder(this).build()
+            
+            // Create media item
+            val mediaItem = MediaItem.fromUri(Uri.parse(videoUri))
+            exoPlayer?.setMediaItem(mediaItem)
+            
+            // Prepare and play
+            exoPlayer?.prepare()
+            exoPlayer?.playWhenReady = true
+            
+            // Add listener for completion
+            exoPlayer?.addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_ENDED) {
+                        exoPlayer?.seekTo(0)
+                        exoPlayer?.pause()
+                    }
+                }
+            })
+            
+            Toast.makeText(this, "Playing video preview", Toast.LENGTH_SHORT).show()
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error playing video preview", e)
+            Toast.makeText(this, "Error playing video", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun removeVideoFromSelection(videoUri: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Remove Video")
+            .setMessage("Remove this video from the widget selection?")
+            .setPositiveButton("Remove") { _, _ ->
+                selectedVideoUris.remove(videoUri)
+                updateVideoSelectionDisplay()
+                Toast.makeText(this, "Video removed", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }    private fun setupGestureSettings() {
         try {
             // Check if gesture settings views exist
             val gestureToggle = binding.root.findViewById<android.widget.Switch>(R.id.gesture_enabled_switch)
@@ -206,9 +281,20 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
         if (videoCount > 0) {
             binding.selectVideoButton.text = getString(R.string.videos_selected, videoCount)
             binding.addButton.isEnabled = true
+            
+            // Show videos list, hide empty message
+            binding.selectedVideosRecyclerView.visibility = android.view.View.VISIBLE
+            binding.noVideosText.visibility = android.view.View.GONE
+            
+            // Update adapter
+            configVideoAdapter.updateVideos(selectedVideoUris)
         } else {
             binding.selectVideoButton.text = getString(R.string.select_videos)
             binding.addButton.isEnabled = false
+            
+            // Show empty message, hide videos list
+            binding.selectedVideosRecyclerView.visibility = android.view.View.GONE
+            binding.noVideosText.visibility = android.view.View.VISIBLE
         }
     }
     
@@ -340,5 +426,11 @@ class VideoWidgetConfigureActivity : AppCompatActivity() {
             Log.e(TAG, "Error getting video title", e)
             "Unknown Video"
         }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        exoPlayer?.release()
+        exoPlayer = null
     }
 }

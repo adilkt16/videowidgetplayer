@@ -33,6 +33,8 @@
     <string name="widget_not_configured">Widget not configured. Tap to set up.</string>
     <string name="video_title_unknown">Unknown Video</string>
     <string name="videos_selected">%d videos selected</string>
+    <string name="selected_videos_for_widget">Selected Videos for Widget</string>
+    <string name="no_videos_selected_widget">No videos selected. Please select videos in the main app first.</string>
     
     <!-- Gesture Settings -->
     <string name="gesture_settings">Gesture Settings</string>

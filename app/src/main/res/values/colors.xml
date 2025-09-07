@@ -36,4 +36,5 @@
     <color name="text_primary">#FF212121</color>
     <color name="text_secondary">#FF757575</color>
     <color name="selection_overlay">#4D6200EE</color>
+    <color name="error_color">#FFF44336</color>
 </resources>

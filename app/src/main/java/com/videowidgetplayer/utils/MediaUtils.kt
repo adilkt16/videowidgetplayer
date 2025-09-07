@@ -411,4 +411,52 @@ object MediaUtils {
             false
         }
     }
+    
+    /**
+     * Simple video info data class for configuration display
+     */
+    data class SimpleVideoInfo(
+        val displayName: String?,
+        val duration: Long,
+        val size: Long
+    )
+    
+    /**
+     * Get basic video information from URI
+     */
+    fun getVideoInfo(context: Context, uri: Uri): SimpleVideoInfo {
+        return try {
+            val cursor = context.contentResolver.query(
+                uri,
+                arrayOf(
+                    MediaStore.Video.Media.DISPLAY_NAME,
+                    MediaStore.Video.Media.DURATION,
+                    MediaStore.Video.Media.SIZE
+                ),
+                null,
+                null,
+                null
+            )
+            
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val displayNameIndex = it.getColumnIndex(MediaStore.Video.Media.DISPLAY_NAME)
+                    val durationIndex = it.getColumnIndex(MediaStore.Video.Media.DURATION)
+                    val sizeIndex = it.getColumnIndex(MediaStore.Video.Media.SIZE)
+                    
+                    SimpleVideoInfo(
+                        displayName = if (displayNameIndex >= 0) it.getString(displayNameIndex) else "Unknown Video",
+                        duration = if (durationIndex >= 0) it.getLong(durationIndex) else 0L,
+                        size = if (sizeIndex >= 0) it.getLong(sizeIndex) else 0L
+                    )
+                } else {
+                    SimpleVideoInfo("Unknown Video", 0L, 0L)
+                }
+            } ?: SimpleVideoInfo("Unknown Video", 0L, 0L)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting video info for URI: $uri", e)
+            SimpleVideoInfo("Unknown Video", 0L, 0L)
+        }
+    }
 }
