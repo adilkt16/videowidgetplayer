@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Widget Video Service Test"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp" />
+
+    <Button
+        android:id="@+id/testStartVideo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Test Start Video"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/testStopVideo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Test Stop Video"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/testServiceStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Check Service Status"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Check logcat for detailed logs"
+        android:textSize="14sp"
+        android:layout_marginTop="32dp" />
+
+</LinearLayout>

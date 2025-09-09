@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,6 +22,7 @@ import com.videowidgetplayer.data.SelectedVideosManager
 import com.videowidgetplayer.data.VideoFile
 import com.videowidgetplayer.data.VideoRepository
 import com.videowidgetplayer.databinding.ActivityMainBinding
+import com.videowidgetplayer.utils.MemoryLeakDetector
 import com.videowidgetplayer.widget.VideoWidgetProvider
 import kotlinx.coroutines.launch
 
@@ -80,6 +82,10 @@ class MainActivity : AppCompatActivity() {
         
         binding.launchWidgetButton.setOnClickListener {
             launchWidget()
+        }
+        
+        binding.debugMemoryButton.setOnClickListener {
+            checkMemoryLeaks()
         }
     }
 
@@ -350,5 +356,20 @@ class MainActivity : AppCompatActivity() {
             .setMessage(message)
             .setPositiveButton("Got it") { dialog, _ -> dialog.dismiss() }
             .show()
+    }
+    
+    private fun checkMemoryLeaks() {
+        // Force garbage collection before checking
+        MemoryLeakDetector.forceGC()
+        
+        val leakCount = MemoryLeakDetector.checkForLeaks()
+        val message = if (leakCount == 0) {
+            "✓ No memory leaks detected!"
+        } else {
+            "⚠ Found $leakCount potential memory leaks"
+        }
+        
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        Log.d("MainActivity", "Memory leak check completed. Found: $leakCount potential leaks")
     }
 }

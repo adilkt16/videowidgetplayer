@@ -1,3 +1,3 @@
-MAIN : REMOVE THE VIDEO PROGRESS BAR AND RELATED THINGS, ITS NOT NEEDED.
-1) SHOWING WIDGET, BUT NO VIDEO IS BEING DISPLAYED
-    ,ALSO WHEN PRESSED ON PLAY BUTTON IN WIDGET, ITS SHOWING A BLANK SCREEN WITH 1of 3 .
+Now audio is working, but not synchronosly. So first lets focus on video, cause video is not being shown without buffer issues. There is constant frame rate issues. Make the video reliable, just like watching on a media player, make the video that seamless with no missing frames.
+
+Now audio is working, but not synchronosly with video frames. So first lets focus on video, cause video is having many issues. There is constant frame rate issues. Make the video reliable, just like watching on a media player, make the video that seamless with no missing frames. The widget video must play just like it plays in a media player with no buffer/frame rate issues. After that install the latest app with the connected usb.

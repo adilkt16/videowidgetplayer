@@ -1,5 +1,6 @@
 package com.videowidgetplayer.widget
 
+import android.util.Log
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -39,13 +40,18 @@ class VideoWidgetProvider : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
+            Log.d("VideoWidgetProvider", "=== updateAppWidget START for widget $appWidgetId ===")
+            
             val widgetPrefs = WidgetPreferences(context)
             
             // Get selected videos from homescreen
             val selectedVideosManager = com.videowidgetplayer.data.SelectedVideosManager(context)
             val selectedVideos = selectedVideosManager.loadSelectedVideos()
             
+            Log.d("VideoWidgetProvider", "Found ${selectedVideos.size} selected videos")
+            
             if (selectedVideos.isEmpty()) {
+                Log.d("VideoWidgetProvider", "No selected videos, showing unconfigured widget")
                 updateUnconfiguredWidget(context, appWidgetManager, appWidgetId)
                 return
             }
@@ -53,18 +59,23 @@ class VideoWidgetProvider : AppWidgetProvider() {
             // Save selected videos to widget preferences for consistency
             val videoUris = selectedVideos.map { it.uri }
             widgetPrefs.saveVideoUris(appWidgetId, videoUris)
+            Log.d("VideoWidgetProvider", "Saved ${videoUris.size} video URIs to preferences")
             
             // Get current video from selected list
             val currentIndex = widgetPrefs.getCurrentVideoIndex(appWidgetId)
             val adjustedIndex = if (currentIndex < selectedVideos.size) currentIndex else 0
             
             if (adjustedIndex != currentIndex) {
+                Log.d("VideoWidgetProvider", "Adjusted video index from $currentIndex to $adjustedIndex")
                 widgetPrefs.saveCurrentVideoIndex(appWidgetId, adjustedIndex)
             }
             
             val currentVideo = selectedVideos[adjustedIndex]
             val isPlaying = widgetPrefs.getPlayingState(appWidgetId)
             val isMuted = widgetPrefs.getMutedState(appWidgetId)
+            
+            Log.d("VideoWidgetProvider", "Current video: ${currentVideo.name}")
+            Log.d("VideoWidgetProvider", "Widget state - Playing: $isPlaying, Muted: $isMuted")
             
             updateConfiguredWidget(
                 context, 
@@ -77,6 +88,8 @@ class VideoWidgetProvider : AppWidgetProvider() {
                 selectedVideos.size,
                 adjustedIndex + 1
             )
+            
+            Log.d("VideoWidgetProvider", "=== updateAppWidget END for widget $appWidgetId ===")
         }
 
         private fun updateConfiguredWidget(
@@ -114,16 +127,21 @@ class VideoWidgetProvider : AppWidgetProvider() {
 
             // Handle video playback
             if (isPlaying) {
+                Log.d("VideoWidgetProvider", "Widget $appWidgetId is playing - starting video services")
                 // Start frame-based video animation
                 startMutedVideoPlayback(context, appWidgetId, videoUri)
                 // Start audio playback if not muted
                 if (!isMuted) {
+                    Log.d("VideoWidgetProvider", "Starting audio playback (not muted)")
                     startAudioPlayback(context, appWidgetId, videoUri)
+                } else {
+                    Log.d("VideoWidgetProvider", "Audio is muted, not starting audio")
                 }
                 // Show video display, hide thumbnail
                 views.setViewVisibility(R.id.videoThumbnail, android.view.View.GONE)
                 views.setViewVisibility(R.id.videoDisplay, android.view.View.VISIBLE)
             } else {
+                Log.d("VideoWidgetProvider", "Widget $appWidgetId is stopped - stopping video services")
                 // Stop video playback and audio
                 stopVideoPlayback(context, appWidgetId)
                 stopAudioPlayback(context, appWidgetId)
@@ -218,20 +236,37 @@ class VideoWidgetProvider : AppWidgetProvider() {
         }
 
         private fun startMutedVideoPlayback(context: Context, appWidgetId: Int, videoUri: Uri) {
-            val intent = Intent(context, WidgetVideoService::class.java).apply {
-                action = WidgetVideoService.ACTION_PLAY_VIDEO
-                putExtra(WidgetVideoService.EXTRA_APPWIDGET_ID, appWidgetId)
-                putExtra(WidgetVideoService.EXTRA_VIDEO_URI, videoUri.toString())
+            Log.d("VideoWidgetProvider", "Starting SIMPLE video playback for widget $appWidgetId")
+            
+            try {
+                val intent = Intent(context, com.videowidgetplayer.service.SimpleWidgetVideoService::class.java).apply {
+                    action = com.videowidgetplayer.service.SimpleWidgetVideoService.ACTION_START_VIDEO
+                    putExtra(com.videowidgetplayer.service.SimpleWidgetVideoService.EXTRA_WIDGET_ID, appWidgetId)
+                    putExtra(com.videowidgetplayer.service.SimpleWidgetVideoService.EXTRA_VIDEO_URI, videoUri.toString())
+                }
+                
+                context.startService(intent)
+                Log.d("VideoWidgetProvider", "Simple video service started successfully")
+                
+            } catch (e: Exception) {
+                Log.e("VideoWidgetProvider", "Error starting simple video service", e)
             }
-            context.startService(intent)
         }
 
         private fun stopVideoPlayback(context: Context, appWidgetId: Int) {
-            val intent = Intent(context, WidgetVideoService::class.java).apply {
-                action = WidgetVideoService.ACTION_STOP_VIDEO
-                putExtra(WidgetVideoService.EXTRA_APPWIDGET_ID, appWidgetId)
+            Log.d("VideoWidgetProvider", "Stopping video for widget $appWidgetId")
+            
+            try {
+                val intent = Intent(context, com.videowidgetplayer.service.SimpleWidgetVideoService::class.java).apply {
+                    action = com.videowidgetplayer.service.SimpleWidgetVideoService.ACTION_STOP_VIDEO
+                    putExtra(com.videowidgetplayer.service.SimpleWidgetVideoService.EXTRA_WIDGET_ID, appWidgetId)
+                }
+                
+                context.startService(intent)
+                
+            } catch (e: Exception) {
+                Log.e("VideoWidgetProvider", "Error stopping video", e)
             }
-            context.startService(intent)
         }
 
         private fun startAudioPlayback(context: Context, appWidgetId: Int, videoUri: Uri) {
@@ -302,7 +337,10 @@ class VideoWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
+        Log.d("VideoWidgetProvider", "onUpdate called for ${appWidgetIds.size} widgets: ${appWidgetIds.contentToString()}")
+        
         for (appWidgetId in appWidgetIds) {
+            Log.d("VideoWidgetProvider", "Updating widget $appWidgetId")
             updateAppWidget(context, appWidgetManager, appWidgetId)
         }
     }
@@ -318,7 +356,9 @@ class VideoWidgetProvider : AppWidgetProvider() {
 
         when (intent.action) {
             ACTION_PLAY_PAUSE -> {
+                Log.d("VideoWidgetProvider", "PLAY_PAUSE action for widget $appWidgetId")
                 val isPlaying = widgetPrefs.getPlayingState(appWidgetId)
+                Log.d("VideoWidgetProvider", "Current playing state: $isPlaying, toggling to: ${!isPlaying}")
                 widgetPrefs.savePlayingState(appWidgetId, !isPlaying)
                 updateAppWidget(context, appWidgetManager, appWidgetId)
             }

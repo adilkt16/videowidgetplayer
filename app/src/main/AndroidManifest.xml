@@ -80,6 +80,11 @@
             android:name=".service.WidgetVideoService"
             android:exported="false" />
             
+        <!-- Simple Widget Video Service for reliable video playback -->
+        <service
+            android:name=".service.SimpleWidgetVideoService"
+            android:exported="false" />
+            
         <!-- Widget Audio Service for audio playback -->
         <service
             android:name=".service.WidgetAudioService"
